@@ -24,3 +24,13 @@ This master thesis work aims to:
 - [E. Meyer: Master thesis](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2780874) (master thesis)
 
 
+## Setup
+
+Create a [Conda](https://docs.conda.io/en/latest/) environment:
+```
+conda env create --file environment.yml
+```
+Activate the environment and run the code.
+
+
+
