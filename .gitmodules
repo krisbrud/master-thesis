@@ -1,0 +1,3 @@
+[submodule "gym-auv"]
+	path = gym-auv
+	url = https://github.com/krisbrud/gym-auv
