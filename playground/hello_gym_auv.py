@@ -9,17 +9,13 @@ import gym
 
 env_name = "TestScenario1-v0"
 env_config = gym_auv.SCENARIOS[env_name]["config"].copy()
-print(f"{env_config = }")
+# print(f"{env_config = }")
 env = gym.make(env_name, env_config=env_config)
 # Import the RL algorithm (Algorithm) we would like to use.
 from ray.rllib.algorithms.ppo import PPO
 from ray import tune
 
 from gym_auv.envs.testscenario import TestScenario1
-
-env.reset()
-obs = env.step([0.5, 0.5])
-print(obs)
 
 
 def train():
@@ -46,7 +42,8 @@ def train():
         # Set up a separate evaluation worker set for the
         # `algo.evaluate()` call after training (see below).
         # "evaluation_num_workers": 1,
-        "horizon": env_config["max_timesteps"],
+        "horizon": 200,  # env_config["max_timesteps"],
+        # "soft_horizon": 200,
         # Only for evaluation runs, render the env.
         "evaluation_config": {
             "render_env": True,
@@ -59,7 +56,8 @@ def train():
     # Run it for n training iterations. A training iteration includes
     # parallel sample collection by the environment workers as well as
     # loss calculation on the collected batch and a model update.
-    for _ in range(1):
+    n_training_iters = 1
+    for _ in range(n_training_iters):
         print(algo.train())
 
 
@@ -69,3 +67,7 @@ def train():
 
 if __name__ == "__main__":
     train()
+
+    env.reset()
+    obs = env.step([0.5, 0.5])
+    print(obs)
