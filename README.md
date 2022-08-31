@@ -32,5 +32,7 @@ conda env create --file environment.yml
 ```
 Activate the environment and run the code.
 
-
-
+TODO: Write about adding `gym-auv` to `.zshrc` etc., i.e.
+```
+export PYTHONPATH="${PYTHONPATH}:/PATH/TO/REPOSITORY/master-thesis/gym-auv/"
+```
