@@ -4,11 +4,12 @@
 # Import custom environment - should automatically register the environment
 # to the `gym` registry
 
+import dataclasses
 import gym_auv
 import gym
 
 env_name = "TestScenario1-v0"
-env_config = gym_auv.SCENARIOS[env_name]["config"].copy()
+env_config = gym_auv.SCENARIOS[env_name]["config"]
 # print(f"{env_config = }")
 env = gym.make(env_name, env_config=env_config)
 # Import the RL algorithm (Algorithm) we would like to use.
@@ -26,7 +27,7 @@ def train():
     config = {
         # Environment (RLlib understands openAI gym registered strings).
         "env": env_name,  # "Taxi-v3",
-        "env_config": env_config,
+        "env_config": {"config": env_config},
         # Use 2 environment workers (aka "rollout workers") that parallelly
         # collect samples from their own environment clone(s).
         "num_workers": 1,  # 2,
@@ -41,8 +42,8 @@ def train():
         },
         # Set up a separate evaluation worker set for the
         # `algo.evaluate()` call after training (see below).
-        # "evaluation_num_workers": 1,
-        "horizon": 200,  # env_config["max_timesteps"],
+        "evaluation_num_workers": 1,
+        "horizon": 10000,  # env_config["max_timesteps"],
         # "soft_horizon": 200,
         # Only for evaluation runs, render the env.
         "evaluation_config": {
@@ -56,9 +57,11 @@ def train():
     # Run it for n training iterations. A training iteration includes
     # parallel sample collection by the environment workers as well as
     # loss calculation on the collected batch and a model update.
-    n_training_iters = 1
-    for _ in range(n_training_iters):
-        print(algo.train())
+    # n_training_iters = 1
+    # for _ in range(n_training_iters):
+    #     print(algo.train())
+
+    algo.evaluate()
 
 
 # Evaluate the trained Trainer (and render each timestep to the shell's
@@ -68,6 +71,6 @@ def train():
 if __name__ == "__main__":
     train()
 
-    env.reset()
-    obs = env.step([0.5, 0.5])
-    print(obs)
+    # env.reset()
+    # obs = env.step([0.5, 0.5])
+    # print(obs)
