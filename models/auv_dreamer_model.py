@@ -17,7 +17,7 @@ from ray.rllib.algorithms.dreamer.utils import (
     TanhBijector,
 )
 
-from layers import Conv1d
+from layers import Conv1d, ConvTranspose1d
 
 ActFunc = Any
 
@@ -109,14 +109,16 @@ class AuvConvDecoder(nn.Module):
 
         self.layers = [
             Linear(input_size, 32 * self.depth),
-            Reshape([-1, 32 * self.depth, 1, 1]),
-            ConvTranspose2d(32 * self.depth, 4 * self.depth, 5, stride=2),
+            Reshape([-1, 32 * self.depth, 1]),
+            ConvTranspose1d(32 * self.depth, 8 * self.depth, 5, stride=2),
             self.act(),
-            ConvTranspose2d(4 * self.depth, 2 * self.depth, 5, stride=2),
+            ConvTranspose1d(8 * self.depth, 4 * self.depth, 5, stride=2),
             self.act(),
-            ConvTranspose2d(2 * self.depth, self.depth, 6, stride=2),
+            ConvTranspose1d(4 * self.depth, 2 * self.depth, 6, stride=3),
             self.act(),
-            ConvTranspose2d(self.depth, self.shape[0], 6, stride=2),
+            ConvTranspose1d(2 * self.depth, self.depth, 6, stride=2),
+            self.act(),
+            ConvTranspose1d(self.depth, self.shape[0], 6, stride=2),
         ]
         self.model = nn.Sequential(*self.layers)
 

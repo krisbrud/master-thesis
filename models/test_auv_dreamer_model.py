@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import torch
+import pytest
 
 from auv_dreamer_model import AuvConvDecoder, AuvConvEncoder
 from gym_auv import Config
@@ -31,6 +32,7 @@ def _get_rssm_feature_size() -> int:
     return feature_size
 
 
+# TODO: Test encoder for different batch sizes
 def test_encoder():
     # Make a encoder, check that it passes data of the correct dimensions
     # and supports backprop
@@ -44,22 +46,25 @@ def test_encoder():
     print(f"{latent_embedding.shape = }")
 
 
-def test_decoder():
+@pytest.mark.parametrize("batch_size", [1, 7])
+def test_decoder(batch_size):
     # Make a reconstructive decoder, check that it passes data of the correct dimensions
     # and supports backprop
     n_rssm_features = _get_rssm_feature_size()
-    latent_embedding = torch.rand(n_rssm_features)
+    mock_latent_embedding = torch.rand((batch_size, n_rssm_features))
 
     lidar_shape = _get_lidar_shape()
 
     decoder = AuvConvDecoder(n_rssm_features, shape=lidar_shape)
-    reconstruction = decoder.forward(latent_embedding)
+    reconstruction_dist = decoder.forward(mock_latent_embedding)
+    reconstruction = reconstruction_dist.sample()
 
     assert isinstance(reconstruction, torch.Tensor)
 
-    assert reconstruction.shape == lidar_shape, (
+    expected_shape = (batch_size, *lidar_shape)
+    assert reconstruction.shape == expected_shape, (
         "Reconstruction not of correct shape!"
-        f"Expected shape {lidar_shape} but got {reconstruction.shape}!"
+        f"Expected shape {expected_shape} but got {reconstruction.shape}!"
     )
 
 
@@ -138,14 +143,19 @@ def experiment_with_decoder_conv_shapes():
     print(f"{x.shape = }")
 
     # init_channels = lidar_shape[0]
-    depth = 32
+    depth = 32  # 32
     # kernel_size = 4
 
     layers = [
         Linear(input_size, 32 * depth),
         Reshape([-1, 32 * depth, 1]),
-        ConvTranspose1d(32 * depth, 4 * depth, 5, stride=2),
-        ConvTranspose1d(4 * depth, 2 * depth, 5, stride=2),
+        # ConvTranspose1d(32 * depth, 4 * depth, 5, stride=2),
+        # ConvTranspose1d(4 * depth, 2 * depth, 5, stride=2),
+        # ConvTranspose1d(2 * depth, depth, 6, stride=2),
+        # ConvTranspose1d(depth, lidar_shape[0], 6, stride=2),
+        ConvTranspose1d(32 * depth, 8 * depth, 5, stride=2),
+        ConvTranspose1d(8 * depth, 4 * depth, 5, stride=2),
+        ConvTranspose1d(4 * depth, 2 * depth, 6, stride=3),
         ConvTranspose1d(2 * depth, depth, 6, stride=2),
         ConvTranspose1d(depth, lidar_shape[0], 6, stride=2),
     ]
@@ -157,8 +167,9 @@ def experiment_with_decoder_conv_shapes():
 
 if __name__ == "__main__":
     # test_encoder()
-    # test_decoder()
+    test_decoder(7)
     # test_reconstruction()
     # print_original_image_dimensions()
-    experiment_with_encoder_conv_shapes()
-    experiment_with_decoder_conv_shapes()
+    # print_original_image_dimensions()
+    # experiment_with_encoder_conv_shapes()
+    # experiment_with_decoder_conv_shapes()
