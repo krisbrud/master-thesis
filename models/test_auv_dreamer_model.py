@@ -1,13 +1,15 @@
-from typing import Tuple
+from typing import List, Tuple
 import torch
 
 from auv_dreamer_model import AuvConvDecoder, AuvConvEncoder
 from gym_auv import Config
 from ray.rllib.algorithms.dreamer import DreamerConfig
 from ray.rllib.algorithms.dreamer.dreamer_model import ConvEncoder
+from ray.rllib.algorithms.dreamer.utils import Linear
+from ray.rllib.models.torch.misc import Reshape
 
 
-from layers import Conv1d
+from layers import Conv1d, ConvTranspose1d
 
 
 def _get_lidar_shape() -> Tuple[int, int]:
@@ -78,6 +80,19 @@ def print_original_image_dimensions():
     print(f"{encoded_image.shape = }")  # = torch.Size([1, 1024])
 
 
+def _apply_and_print_output_dim(x: torch.Tensor, layer: torch.nn.Module):
+    out = layer(x)
+    print(f"Applied layer {layer}.\n\tOutput shape: {out.shape}")
+    return out
+
+
+def _print_model_dims(x, layers: List[torch.nn.Module]):
+    with torch.no_grad():
+        out = x
+        for layer in layers:
+            out = _apply_and_print_output_dim(out, layer)
+
+
 def experiment_with_encoder_conv_shapes():
     # pass
 
@@ -90,33 +105,54 @@ def experiment_with_encoder_conv_shapes():
     kernel_size = 4
 
     print("input:")
-    _print_shape(x)
-    conv1 = Conv1d(
-        init_channels,
-        depth,
-        kernel_size,
-        stride=2,
-        dilation=1,
-        padding_mode="circular",
-        padding=2,
-    )
-    out1 = conv1.forward(x)
-    print("after first")
-    _print_shape(out1)
 
-    conv2 = Conv1d(depth, 2 * depth, kernel_size, stride=2)
-    out2 = conv2(out1)
-    _print_shape(out2)
+    layers = [
+        Conv1d(
+            init_channels,
+            depth,
+            kernel_size,
+            stride=2,
+            dilation=1,
+            padding_mode="circular",
+            padding=2,
+        ),
+        Conv1d(depth, 2 * depth, kernel_size, stride=2),
+        Conv1d(2 * depth, 4 * depth, kernel_size, stride=2),
+        Conv1d(4 * depth, 4 * depth, kernel_size, stride=2),
+    ]
 
-    out3 = Conv1d(2 * depth, 4 * depth, kernel_size, stride=2)(out2)
-    # out3 = Conv1d(2 * depth, 2 * depth, kernel_size, stride=2)(out2)
-    _print_shape(out3)
+    print("Encoder model dimensions:")
+    _print_model_dims(x, layers)
+    print("\n")
 
-    out4 = Conv1d(4 * depth, 4 * depth, kernel_size, stride=2)(out3)
-    _print_shape(out4)
 
-    # out5 = Conv1d(4 * depth, 4 * depth, kernel_size, stride=2)(out4)
-    # _print_shape(out5)
+def experiment_with_decoder_conv_shapes():
+    # pass
+
+    lidar_shape = _get_lidar_shape()
+    print(f"{lidar_shape = }")
+
+    input_size = _get_rssm_feature_size()
+    x = torch.rand(input_size)
+    # x = x.view(-1, *(lidar_shape[-2:]))
+    print(f"{x.shape = }")
+
+    # init_channels = lidar_shape[0]
+    depth = 32
+    # kernel_size = 4
+
+    layers = [
+        Linear(input_size, 32 * depth),
+        Reshape([-1, 32 * depth, 1]),
+        ConvTranspose1d(32 * depth, 4 * depth, 5, stride=2),
+        ConvTranspose1d(4 * depth, 2 * depth, 5, stride=2),
+        ConvTranspose1d(2 * depth, depth, 6, stride=2),
+        ConvTranspose1d(depth, lidar_shape[0], 6, stride=2),
+    ]
+
+    print("Decoder model dimensions:")
+    _print_model_dims(x, layers)
+    print("\n")
 
 
 if __name__ == "__main__":
@@ -125,3 +161,4 @@ if __name__ == "__main__":
     # test_reconstruction()
     # print_original_image_dimensions()
     experiment_with_encoder_conv_shapes()
+    experiment_with_decoder_conv_shapes()
