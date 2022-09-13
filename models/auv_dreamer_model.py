@@ -2,9 +2,11 @@
 # https://github.com/ray-project/ray/blob/ea6d53dbf35a56bb87ecdfa2cc23bc9518a05f15/rllib/algorithms/dreamer/dreamer_model.py
 
 # import torch
-from typing import Any, Tuple
+from typing import Any, Tuple, List
+import torch
 from torch import nn
 from torch import distributions as td
+from ray.rllib.utils.framework import TensorType
 
 from ray.rllib.models.torch.misc import Reshape
 
@@ -16,8 +18,10 @@ from ray.rllib.algorithms.dreamer.utils import (
     GRUCell,
     TanhBijector,
 )
+from ray.rllib.algorithms.dreamer.dreamer_model import DenseDecoder, RSSM, ActionDecoder
+from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 
-from layers import Conv1d, ConvTranspose1d
+from models.layers import Conv1d, ConvTranspose1d
 
 ActFunc = Any
 
@@ -132,3 +136,107 @@ class AuvConvDecoder(nn.Module):
 
         # Equivalent to making a multivariate diag
         return td.Independent(td.Normal(mean, 1), len(self.shape))
+
+
+# Represents all models in Dreamer, unifies them all into a single interface
+# Modified version of the original DreamerModel (https://github.com/ray-project/ray/blob/96cceb08e8bf73df990437002e25883c5a72d30c/rllib/algorithms/dreamer/dreamer_model.py),
+# but adapted to be compatible with the input space of `gym-auv`
+class AuvDreamerModel(TorchModelV2, nn.Module):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+        super().__init__(obs_space, action_space, num_outputs, model_config, name)
+
+        nn.Module.__init__(self)
+        self.depth = model_config["depth_size"]
+        self.deter_size = model_config["deter_size"]
+        self.stoch_size = model_config["stoch_size"]
+        self.hidden_size = model_config["hidden_size"]
+
+        self.action_size = action_space.shape[0]
+
+        self.encoder = AuvConvEncoder(self.depth)
+        self.decoder = AuvConvDecoder(
+            self.stoch_size + self.deter_size, depth=self.depth
+        )
+        self.reward = DenseDecoder(
+            self.stoch_size + self.deter_size, 1, 2, self.hidden_size
+        )
+        self.dynamics = RSSM(
+            self.action_size,
+            32 * self.depth,
+            stoch=self.stoch_size,
+            deter=self.deter_size,
+        )
+        self.actor = ActionDecoder(
+            self.stoch_size + self.deter_size, self.action_size, 4, self.hidden_size
+        )
+        self.value = DenseDecoder(
+            self.stoch_size + self.deter_size, 1, 3, self.hidden_size
+        )
+        self.state = None
+
+        self.device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+
+    def policy(
+        self, obs: TensorType, state: List[TensorType], explore=True
+    ) -> Tuple[TensorType, List[float], List[TensorType]]:
+        """Returns the action. Runs through the encoder, recurrent model,
+        and policy to obtain action.
+        """
+        if state is None:
+            self.state = self.get_initial_state(batch_size=obs.shape[0])
+        else:
+            self.state = state
+        # TODO: Make clearer why this slicing is done
+        post = self.state[:4]
+        action = self.state[4]
+
+        embed = self.encoder(obs)
+        post, _ = self.dynamics.obs_step(post, action, embed)
+        feat = self.dynamics.get_feature(post)
+
+        action_dist = self.actor(feat)
+        if explore:
+            action = action_dist.sample()
+        else:
+            action = action_dist.mean
+        logp = action_dist.log_prob(action)
+
+        self.state = post + [action]
+        return action, logp, self.state
+
+    def imagine_ahead(self, state: List[TensorType], horizon: int) -> TensorType:
+        """Given a batch of states, rolls out more state of length horizon."""
+        start = []
+        for s in state:
+            s = s.contiguous().detach()
+            shpe = [-1] + list(s.size())[2:]
+            start.append(s.view(*shpe))
+
+        def next_state(state):
+            feature = self.dynamics.get_feature(state).detach()
+            action = self.actor(feature).rsample()
+            next_state = self.dynamics.img_step(state, action)
+            return next_state
+
+        last = start
+        outputs = [[] for i in range(len(start))]
+        for _ in range(horizon):
+            last = next_state(last)
+            [o.append(s) for s, o in zip(last, outputs)]
+        outputs = [torch.stack(x, dim=0) for x in outputs]
+
+        imag_feat = self.dynamics.get_feature(outputs)
+        return imag_feat
+
+    def get_initial_state(self) -> List[TensorType]:
+        self.state = self.dynamics.get_initial_state(1) + [
+            torch.zeros(1, self.action_space.shape[0]).to(self.device)
+        ]
+        # returned state should be of shape (state_dim, )
+        self.state = [s.squeeze(0) for s in self.state]
+        return self.state
+
+    def value_function(self) -> TensorType:
+        return None
