@@ -9,7 +9,8 @@ import gym_auv
 from gym_auv import Config
 
 # from ray.rllib.algorithms.dreamer import DreamerConfig
-# from ray.rllib.algorithms.dreamer.dreamer_model import ConvEncoder
+from ray.rllib.algorithms.dreamer.dreamer_model import DenseDecoder
+
 # from ray.rllib.algorithms.dreamer.utils import Linear
 # from ray.rllib.models.torch.misc import Reshape
 import gym
@@ -18,14 +19,16 @@ from tests.models.model_utils import _get_lidar_shape, _get_rssm_feature_size
 
 
 # TODO: Test encoder for different batch sizes
-def test_encoder():
+@pytest.mark.parametrize("batch_size", [1, 7])
+def test_encoder(batch_size):
     # Make a encoder, check that it passes data of the correct dimensions
     # and supports backprop
     default_config = Config()
     lidar_shape = _get_lidar_shape()
+    batched_shape = (batch_size, *lidar_shape)
 
     encoder = AuvConvEncoder(shape=lidar_shape)
-    random_lidar_input = torch.rand(lidar_shape)
+    random_lidar_input = torch.rand(batched_shape)
 
     latent_embedding = encoder.forward(random_lidar_input)
     print(f"{latent_embedding.shape = }")
@@ -75,4 +78,9 @@ def test_auv_dreamer_model_initialization():
         action_space=action_space,
         num_outputs=num_outputs,
         model_config=model_config,
+        name=name,
     )
+
+
+if __name__ == "__main__":
+    test_auv_dreamer_model_initialization()

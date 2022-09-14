@@ -43,4 +43,5 @@ def auv_dreamer_factory(env_name: str, env_config: Union[dict, None] = None) -> 
 
 
 if __name__ == "__main__":
-    auv_dreamer_factory()
+    # TODO: Register the env
+    auv_dreamer_factory("TestScenario1-v0")

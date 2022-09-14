@@ -2,7 +2,7 @@
 # https://github.com/ray-project/ray/blob/ea6d53dbf35a56bb87ecdfa2cc23bc9518a05f15/rllib/algorithms/dreamer/dreamer_model.py
 
 # import torch
-from typing import Any, Tuple, List
+from typing import Any, Dict, Tuple, List
 import torch
 from torch import nn
 from torch import distributions as td
@@ -33,7 +33,7 @@ class AuvConvEncoder(nn.Module):
     """
 
     def __init__(
-        self, depth: int = 32, act: ActFunc = None, shape: Tuple[int] = (3, 64, 64)
+        self, depth: int = 32, act: ActFunc = None, shape: Tuple[int] = (3, 180)
     ):
         """Initializes Conv Encoder
 
@@ -67,6 +67,7 @@ class AuvConvEncoder(nn.Module):
     def forward(self, x):
         # TODO: Update
         # Flatten to [batch*horizon, 3, 64, 64] in loss function
+        print(f"forward: {x.shape = }")
         orig_shape = list(x.size())
 
         # Last two dimensions are channels and bearings, the ones before may be
@@ -75,9 +76,26 @@ class AuvConvEncoder(nn.Module):
         # x = x.view(-1, *(orig_shape[-3:]))
         x = self.model(x)
 
-        # new_shape = orig_shape[:-3] + [32 * self.depth]
-        # x = x.view(*new_shape)
+        new_shape = orig_shape[:-2] + [32 * self.depth]
+        x = x.view(*new_shape)
+
         return x
+
+
+class AuvEncoder(nn.Module):
+    """Joint encoder for proprioceptive and lidar observations in gym_auv"""
+
+    def __init__(self, navigation_shape=(6,), lidar_shape=(3, 180)):
+        nav_hidden_size = 64
+        self.navigation_encoder = nn.Sequential(
+            [
+                Linear(6, nav_hidden_size),
+            ]
+        )
+        self.conv_encoder = AuvConvEncoder(shape=lidar_shape)
+
+    def forward(self, x: Dict[str, TensorType]) -> TensorType:
+        pass
 
 
 # Decoder, part of PlaNET
