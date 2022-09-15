@@ -5,6 +5,7 @@
 from typing import Any, Dict, Tuple, List
 import torch
 from torch import nn
+import torch.functional as F
 from torch import distributions as td
 from ray.rllib.utils.framework import TensorType
 
@@ -87,15 +88,17 @@ class AuvEncoder(nn.Module):
 
     def __init__(self, navigation_shape=(6,), lidar_shape=(3, 180)):
         nav_hidden_size = 64
+        nav_output_size = 32
         self.navigation_encoder = nn.Sequential(
-            [
-                Linear(6, nav_hidden_size),
-            ]
+            [Linear(6, nav_hidden_size), nn.ReLU(), Linear(nav_hidden_size, 32)]
         )
         self.conv_encoder = AuvConvEncoder(shape=lidar_shape)
+        # self.joint_head =
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
-        pass
+        x_proprio = x["proprioceptive"]
+        latent_proprio = self.navigation_encoder(x_proprio)
+        # latent
 
 
 # Decoder, part of PlaNET

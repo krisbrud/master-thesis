@@ -1,15 +1,20 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 import torch
 import pytest
 from models.auv_dreamer import _get_auv_dreamer_model_options
 
-from models.auv_dreamer_model import AuvConvDecoder, AuvConvEncoder, AuvDreamerModel
+from models.auv_dreamer_model import (
+    AuvConvDecoder,
+    AuvConvEncoder,
+    AuvDreamerModel,
+    AuvEncoder,
+)
 
 import gym_auv
 from gym_auv import Config
 
 # from ray.rllib.algorithms.dreamer import DreamerConfig
-from ray.rllib.algorithms.dreamer.dreamer_model import DenseDecoder
+# from ray.rllib.algorithms.dreamer.dreamer_model import DenseDecoder
 
 # from ray.rllib.algorithms.dreamer.utils import Linear
 # from ray.rllib.models.torch.misc import Reshape
@@ -20,7 +25,7 @@ from tests.models.model_utils import _get_lidar_shape, _get_rssm_feature_size
 
 # TODO: Test encoder for different batch sizes
 @pytest.mark.parametrize("batch_size", [1, 7])
-def test_encoder(batch_size):
+def test_conv_encoder(batch_size):
     # Make a encoder, check that it passes data of the correct dimensions
     # and supports backprop
     default_config = Config()
@@ -34,8 +39,26 @@ def test_encoder(batch_size):
     print(f"{latent_embedding.shape = }")
 
 
+def _make_mock_input(
+    batch_size: int, n_proprio_states: int = 6, lidar_shape: Tuple[int, int] = (3, 180)
+) -> Dict[str, torch.TensorType]:
+    proprioceptive = torch.rand(
+        (
+            batch_size,
+            6,
+        )
+    )
+    lidar = torch.rand((batch_size, *lidar_shape))
+
+    mock_input = {
+        "proprioceptive": proprioceptive,
+        "lidar": lidar,
+    }
+    return mock_input
+
+
 @pytest.mark.parametrize("batch_size", [1, 7])
-def test_decoder(batch_size):
+def test_conv_decoder(batch_size):
     # Make a reconstructive decoder, check that it passes data of the correct dimensions
     # and supports backprop
     n_rssm_features = _get_rssm_feature_size()
@@ -83,4 +106,6 @@ def test_auv_dreamer_model_initialization():
 
 
 if __name__ == "__main__":
+    test_conv_encoder(1)
+    test_conv_decoder(1)
     test_auv_dreamer_model_initialization()
