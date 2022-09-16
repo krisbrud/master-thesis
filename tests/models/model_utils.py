@@ -44,6 +44,13 @@ def _get_lidar_shape() -> Tuple[int, int]:
     return lidar_shape
 
 
+def _get_navigation_shape() -> Tuple[int, int]:
+    # Returns a tuple of the shape of the lidar measurements of a single timestep
+    navigation_shape = (6,)
+
+    return navigation_shape
+
+
 def _get_rssm_feature_size() -> int:
     # Returns the feature size of the latent state, for use in testing the models
     dreamer_config = DreamerConfig()

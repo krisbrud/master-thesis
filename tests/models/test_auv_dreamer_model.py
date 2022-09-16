@@ -6,6 +6,7 @@ from models.auv_dreamer import _get_auv_dreamer_model_options
 from models.auv_dreamer_model import (
     AuvConvDecoder,
     AuvConvEncoder,
+    AuvDecoder,
     AuvDreamerModel,
     AuvEncoder,
 )
@@ -20,7 +21,11 @@ from gym_auv import Config
 # from ray.rllib.models.torch.misc import Reshape
 import gym
 
-from tests.models.model_utils import _get_lidar_shape, _get_rssm_feature_size
+from tests.models.model_utils import (
+    _get_lidar_shape,
+    _get_rssm_feature_size,
+    _get_navigation_shape,
+)
 
 
 # TODO: Test encoder for different batch sizes
@@ -31,6 +36,7 @@ def test_conv_encoder(batch_size):
     default_config = Config()
     lidar_shape = _get_lidar_shape()
     batched_shape = (batch_size, *lidar_shape)
+    print(f"{batched_shape = }")
 
     encoder = AuvConvEncoder(shape=lidar_shape)
     random_lidar_input = torch.rand(batched_shape)
@@ -55,6 +61,20 @@ def _make_mock_input(
         "lidar": lidar,
     }
     return mock_input
+
+
+@pytest.mark.parametrize("batch_size", [1, 7])
+def test_encoder(batch_size: int):
+    lidar_shape = _get_lidar_shape()
+    navigation_shape = _get_navigation_shape()
+    encoder = AuvEncoder(lidar_shape=lidar_shape, navigation_shape=navigation_shape)
+
+    mock_input = _make_mock_input(
+        batch_size=batch_size,
+        n_proprio_states=navigation_shape[0],
+        lidar_shape=lidar_shape,
+    )
+    encoder(mock_input)
 
 
 @pytest.mark.parametrize("batch_size", [1, 7])
@@ -84,6 +104,15 @@ def _make_mock_auv_env() -> gym.Env:
     return mock_auv_env
 
 
+@pytest.mark.parametrize("batch_size", [1, 7])
+def test_decoder(batch_size):
+    hidden_size = 1024
+    latents = torch.rand((batch_size, hidden_size))
+
+    decoder = AuvDecoder(hidden_size)
+    out = decoder(latents)
+
+
 def test_auv_dreamer_model_initialization():
     # Make a mock auv env to get access to the observation and
     # action spaces
@@ -106,6 +135,8 @@ def test_auv_dreamer_model_initialization():
 
 
 if __name__ == "__main__":
-    test_conv_encoder(1)
-    test_conv_decoder(1)
-    test_auv_dreamer_model_initialization()
+    test_encoder(1)
+    test_decoder(1)
+    # test_conv_encoder(1)
+    # test_conv_decoder(1)
+    # test_auv_dreamer_model_initialization()

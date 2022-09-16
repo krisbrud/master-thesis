@@ -2,6 +2,7 @@
 # https://github.com/ray-project/ray/blob/ea6d53dbf35a56bb87ecdfa2cc23bc9518a05f15/rllib/algorithms/dreamer/dreamer_model.py
 
 # import torch
+from turtle import forward
 from typing import Any, Dict, Tuple, List
 import torch
 from torch import nn
@@ -67,7 +68,7 @@ class AuvConvEncoder(nn.Module):
 
     def forward(self, x):
         # TODO: Update
-        # Flatten to [batch*horizon, 3, 64, 64] in loss function
+        # Flatten to [batch*horizon, 3, 180] in loss function
         print(f"forward: {x.shape = }")
         orig_shape = list(x.size())
 
@@ -77,7 +78,10 @@ class AuvConvEncoder(nn.Module):
         # x = x.view(-1, *(orig_shape[-3:]))
         x = self.model(x)
 
-        new_shape = orig_shape[:-2] + [32 * self.depth]
+        # new_shape = orig_shape[:-2] + [32 * self.depth]
+        single_output_shape = x.shape[-2] * x.shape[-1]
+        new_shape = orig_shape[:-2] + [single_output_shape]
+
         x = x.view(*new_shape)
 
         return x
@@ -87,18 +91,37 @@ class AuvEncoder(nn.Module):
     """Joint encoder for proprioceptive and lidar observations in gym_auv"""
 
     def __init__(self, navigation_shape=(6,), lidar_shape=(3, 180)):
-        nav_hidden_size = 64
-        nav_output_size = 32
+        super().__init__()
+        self.nav_hidden_size = 64
+        self.nav_output_size = 32
+        self.lidar_encoded_size = 256 * 9  # TODO: Refactor so this is given as argument
+        self.hidden_output_size = 1024
+
+        self.lidar_encoder = AuvConvEncoder()
+
         self.navigation_encoder = nn.Sequential(
-            [Linear(6, nav_hidden_size), nn.ReLU(), Linear(nav_hidden_size, 32)]
+            Linear(6, self.nav_hidden_size),
+            nn.ReLU(),
+            Linear(self.nav_hidden_size, self.nav_output_size),
         )
         self.conv_encoder = AuvConvEncoder(shape=lidar_shape)
-        # self.joint_head =
+        self.joint_head = nn.Sequential(
+            Linear(
+                self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
+            )
+        )
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
         x_proprio = x["proprioceptive"]
-        latent_proprio = self.navigation_encoder(x_proprio)
-        # latent
+        proprio_latents = self.navigation_encoder(x_proprio)
+
+        x_lidar = x["lidar"]
+        lidar_latents = self.lidar_encoder(x_lidar)
+
+        concat_latents = torch.cat((proprio_latents, lidar_latents), dim=-1)
+        out = self.joint_head(concat_latents)
+
+        return out
 
 
 # Decoder, part of PlaNET
@@ -115,7 +138,7 @@ class AuvConvDecoder(nn.Module):
         input_size: int,
         depth: int = 32,
         act: ActFunc = None,
-        shape: Tuple[int] = (3, 64, 64),
+        shape: Tuple[int] = (3, 180),
     ):
         """Initializes a ConvDecoder instance.
         Args:
@@ -157,6 +180,26 @@ class AuvConvDecoder(nn.Module):
 
         # Equivalent to making a multivariate diag
         return td.Independent(td.Normal(mean, 1), len(self.shape))
+
+
+class AuvDecoder(nn.Module):
+    def __init__(self, input_size: int) -> None:
+        super().__init__()
+
+        self.input_size = input_size
+
+        self.lidar_decoder = AuvConvDecoder(input_size)
+        self.navigation_decoder = DenseDecoder(1024, output_size=6, layers=1, units=64)
+
+    def forward(self, x):
+        lidar_reconstruction = self.lidar_decoder(x)
+        navigation_reconstruction = self.navigation_decoder(x)
+
+        out = {
+            "lidar": lidar_reconstruction,
+            "proprioceptive": navigation_reconstruction,
+        }
+        return out
 
 
 # Represents all models in Dreamer, unifies them all into a single interface
