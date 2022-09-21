@@ -22,6 +22,7 @@ from ray.rllib.algorithms.dreamer.utils import (
 )
 from ray.rllib.algorithms.dreamer.dreamer_model import DenseDecoder, RSSM, ActionDecoder
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
+from ray.rllib.models.modelv2 import restore_original_dimensions
 
 from models.layers import Conv1d, ConvTranspose1d
 
@@ -217,7 +218,8 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
 
         self.action_size = action_space.shape[0]
 
-        self.encoder = AuvConvEncoder(self.depth)
+        # self.encoder = AuvConvEncoder(self.depth)
+        self.encoder = AuvEncoder()
         self.decoder = AuvConvDecoder(
             self.stoch_size + self.deter_size, depth=self.depth
         )
@@ -256,6 +258,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         post = self.state[:4]
         action = self.state[4]
 
+        obs = restore_original_dimensions(obs, self.obs_space, "torch")
         embed = self.encoder(obs)
         post, _ = self.dynamics.obs_step(post, action, embed)
         feat = self.dynamics.get_feature(post)
