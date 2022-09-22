@@ -22,6 +22,9 @@ from ray.rllib.utils.annotations import override
 from ray.rllib.models.action_dist import ActionDistribution
 from ray.rllib.models.modelv2 import ModelV2
 from ray.rllib.policy.torch_policy_v2 import TorchPolicyV2
+from ray.rllib.models.modelv2 import restore_original_dimensions
+
+import gym.spaces
 
 torch, nn = try_import_torch()
 if torch:
@@ -30,7 +33,7 @@ if torch:
 logger = logging.getLogger(__name__)
 
 
-class DreamerTorchPolicy(TorchPolicyV2):
+class AuvDreamerTorchPolicy(TorchPolicyV2):
     def __init__(self, observation_space, action_space, config):
 
         config = dict(ray.rllib.algorithms.dreamer.DreamerConfig().to_dict(), **config)
@@ -66,6 +69,12 @@ class DreamerTorchPolicy(TorchPolicyV2):
         device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
+
+        if isinstance(self.observation_space, gym.spaces.Dict):
+            # Set observation to original
+            train_batch["obs"] = restore_original_dimensions(
+                train_batch["obs", self.observation_space, "torch"]
+            )
 
         # PlaNET Model Loss
         latent = self.model.encoder(train_batch["obs"])
@@ -224,7 +233,14 @@ class DreamerTorchPolicy(TorchPolicyV2):
         to incentivize exploration.
         """
         obs = obs_batch["obs"]
-        bsize = obs.shape[0]
+
+        if isinstance(obs, dict):
+            bsize = 1
+            logger.warn(
+                "Assuming batch size 1 since observation is dictionary in optimizer!"
+            )
+        else:
+            bsize = obs.shape[0]
 
         # Custom Exploration
         if timestep <= policy.config["prefill_timesteps"]:

@@ -25,6 +25,7 @@ from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.models.modelv2 import restore_original_dimensions
 
 from models.layers import Conv1d, ConvTranspose1d
+from models.unflatten_obs import unflatten_obs
 
 ActFunc = Any
 
@@ -113,13 +114,12 @@ class AuvEncoder(nn.Module):
         )
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
-        x_proprio = x["proprioceptive"]
-        proprio_latents = self.navigation_encoder(x_proprio)
+        nav_obs, lidar_obs = unflatten_obs(x)
+        nav_latents = self.navigation_encoder(nav_obs)
 
-        x_lidar = x["lidar"]
-        lidar_latents = self.lidar_encoder(x_lidar)
+        lidar_latents = self.lidar_encoder(lidar_obs)
 
-        concat_latents = torch.cat((proprio_latents, lidar_latents), dim=-1)
+        concat_latents = torch.cat((nav_latents, lidar_latents), dim=-1)
         out = self.joint_head(concat_latents)
 
         return out
@@ -193,13 +193,11 @@ class AuvDecoder(nn.Module):
         self.navigation_decoder = DenseDecoder(1024, output_size=6, layers=1, units=64)
 
     def forward(self, x):
-        lidar_reconstruction = self.lidar_decoder(x)
-        navigation_reconstruction = self.navigation_decoder(x)
 
-        out = {
-            "lidar": lidar_reconstruction,
-            "proprioceptive": navigation_reconstruction,
-        }
+        navigation_reconstruction = self.navigation_decoder(x)
+        lidar_reconstruction = self.lidar_decoder(x).reshape(-1, 3 * 180)
+
+        out = torch.cat((navigation_reconstruction, lidar_reconstruction), dim=1)
         return out
 
 
@@ -220,9 +218,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
 
         # self.encoder = AuvConvEncoder(self.depth)
         self.encoder = AuvEncoder()
-        self.decoder = AuvConvDecoder(
-            self.stoch_size + self.deter_size, depth=self.depth
-        )
+        self.decoder = AuvDecoder(self.stoch_size + self.deter_size)
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
         )

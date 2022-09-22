@@ -3,11 +3,13 @@ from ray.rllib.algorithms.dreamer import Dreamer, DreamerConfig
 import gym
 
 from models.auv_dreamer_model import AuvDreamerModel
+from models.auv_dreamer_torch_policy import AuvDreamerTorchPolicy
 
 
 import logging
 import numpy as np
-import random
+
+# import random
 from typing import Optional
 
 from ray.rllib.algorithms.algorithm import Algorithm
@@ -30,15 +32,22 @@ from ray.rllib.utils.metrics import (
 from ray.rllib.utils.metrics.learner_info import LEARNER_INFO
 from ray.rllib.utils.typing import (
     PartialAlgorithmConfigDict,
+    SampleBatchType,
     AlgorithmConfigDict,
     ResultDict,
 )
-from ray.rllib.utils.replay_buffers import ReplayBuffer, StorageUnit
+
+from ray.rllib.algorithms.dreamer.dreamer import (
+    EpisodicBuffer,
+    total_sampled_timesteps,
+    DreamerIteration,
+)
+
 
 logger = logging.getLogger(__name__)
 
 
-class Dreamer(Algorithm):
+class AuvDreamer(Algorithm):
     @classmethod
     @override(Algorithm)
     def get_default_config(cls) -> AlgorithmConfigDict:
@@ -70,7 +79,7 @@ class Dreamer(Algorithm):
 
     @override(Algorithm)
     def get_default_policy_class(self, config: AlgorithmConfigDict):
-        return DreamerTorchPolicy
+        return AuvDreamerTorchPolicy
 
     @override(Algorithm)
     def setup(self, config: PartialAlgorithmConfigDict):
@@ -78,9 +87,7 @@ class Dreamer(Algorithm):
         # `training_iteration` implementation: Setup buffer in `setup`, not
         # in `execution_plan` (deprecated).
         if self.config["_disable_execution_plan_api"] is True:
-            self.local_replay_buffer = EpisodeSequenceBuffer(
-                replay_sequence_length=config["batch_length"]
-            )
+            self.local_replay_buffer = EpisodicBuffer(length=config["batch_length"])
 
             # Prefill episode buffer with initial exploration (uniform sampling)
             while (
@@ -98,9 +105,7 @@ class Dreamer(Algorithm):
         ), "Dreamer execution_plan does NOT take any additional parameters"
 
         # Special replay buffer for Dreamer agent.
-        episode_buffer = EpisodeSequenceBuffer(
-            replay_sequence_length=config["batch_length"]
-        )
+        episode_buffer = EpisodicBuffer(length=config["batch_length"])
 
         local_worker = workers.local_worker()
 
@@ -140,25 +145,19 @@ class Dreamer(Algorithm):
 
         fetches = {}
 
-        # Update target network every `target_network_update_freq` sample steps.
-        cur_ts = self._counters[
-            NUM_AGENT_STEPS_SAMPLED if self._by_agent_steps else NUM_ENV_STEPS_SAMPLED
-        ]
+        # Dreamer training loop.
+        # Run multiple sub-iterations for each training iteration.
+        for n in range(dreamer_train_iters):
+            print(f"sub-iteration={n}/{dreamer_train_iters}")
+            batch = self.local_replay_buffer.sample(batch_size)
+            fetches = local_worker.learn_on_batch(batch)
 
-        if cur_ts > self.config["num_steps_sampled_before_learning_starts"]:
-            # Dreamer training loop.
-            # Run multiple sub-iterations for each training iteration.
-            for n in range(dreamer_train_iters):
-                print(f"sub-iteration={n}/{dreamer_train_iters}")
-                batch = self.local_replay_buffer.sample(batch_size)
-                fetches = local_worker.learn_on_batch(batch)
-
-            if fetches:
-                # Custom logging.
-                policy_fetches = fetches[DEFAULT_POLICY_ID]["learner_stats"]
-                if "log_gif" in policy_fetches:
-                    gif = policy_fetches["log_gif"]
-                    policy_fetches["log_gif"] = self._postprocess_gif(gif)
+        if fetches:
+            # Custom logging.
+            policy_fetches = fetches[DEFAULT_POLICY_ID]["learner_stats"]
+            if "log_gif" in policy_fetches:
+                gif = policy_fetches["log_gif"]
+                policy_fetches["log_gif"] = self._postprocess_gif(gif)
 
         self.local_replay_buffer.add(batch)
 
@@ -197,8 +196,12 @@ def auv_dreamer_factory(env_name: str, env_config: Union[dict, None] = None) -> 
     model_options = _get_auv_dreamer_model_options()
     dreamer_config.training(dreamer_model=model_options)
 
+    # dreamer_config.preprocessor_pref = None
+    # dreamer_config._disable_preprocessor_api = True
+
     # Instantiate the algorithm
-    dreamer = Dreamer(config=dreamer_config)
+    # dreamer = Dreamer(config=dreamer_config)
+    dreamer = AuvDreamer(config=dreamer_config)
     return dreamer
 
 

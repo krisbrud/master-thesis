@@ -104,11 +104,19 @@ def _make_mock_auv_env() -> gym.Env:
     return mock_auv_env
 
 
-@pytest.mark.parametrize("batch_size", [1, 7])
-def test_decoder(batch_size):
-    hidden_size = 1024
-    latents = torch.rand((batch_size, hidden_size))
+@pytest.fixture
+def hidden_size() -> int:
+    return 1024
 
+
+@pytest.fixture(name="latents", params=(1, 7))
+def _latents(request, hidden_size):
+    batch_size = request.param
+    latents = torch.rand((batch_size, hidden_size))
+    return latents
+
+
+def test_decoder(latents, hidden_size):
     decoder = AuvDecoder(hidden_size)
     out = decoder(latents)
 
