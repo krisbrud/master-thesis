@@ -180,7 +180,9 @@ def _get_auv_dreamer_model_options() -> dict:
     return model_config
 
 
-def auv_dreamer_factory(env_name: str, env_config: Union[dict, None] = None) -> Dreamer:
+def auv_dreamer_factory(
+    env_name: str, env_config: Union[dict, None] = None, num_envs_per_worker=None
+) -> Dreamer:
     """Instantiates the Dreamer algorithm with a default
     model suitable for the gym-auv environment"""
     # Instantiate the config
@@ -189,8 +191,11 @@ def auv_dreamer_factory(env_name: str, env_config: Union[dict, None] = None) -> 
 
     # Use the specified environment and environment config
     dreamer_config.env = env_name
-    if env_config is not None:
-        dreamer_config.env_config
+    # if env_config is not None:
+    #     dreamer_config.env_config
+
+    if num_envs_per_worker is not None:
+        dreamer_config.num_envs_per_worker = num_envs_per_worker
 
     # Use the custom model
     model_options = _get_auv_dreamer_model_options()
@@ -205,6 +210,6 @@ def auv_dreamer_factory(env_name: str, env_config: Union[dict, None] = None) -> 
     return dreamer
 
 
-if __name__ == "__main__":
-    # TODO: Register the env
-    auv_dreamer_factory("TestScenario1-v0")
+# if __name__ == "__main__":
+#     # TODO: Register the env
+#     auv_dreamer_factory("TestScenario1-v0")

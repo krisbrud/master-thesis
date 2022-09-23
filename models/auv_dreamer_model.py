@@ -139,7 +139,7 @@ class AuvConvDecoder(nn.Module):
         input_size: int,
         depth: int = 32,
         act: ActFunc = None,
-        shape: Tuple[int] = (3, 180),
+        shape: Tuple[int] = (3 * 180,),
     ):
         """Initializes a ConvDecoder instance.
         Args:
@@ -167,7 +167,9 @@ class AuvConvDecoder(nn.Module):
             self.act(),
             ConvTranspose1d(2 * self.depth, self.depth, 6, stride=2),
             self.act(),
-            ConvTranspose1d(self.depth, self.shape[0], 6, stride=2),
+            ConvTranspose1d(
+                self.depth, 3, 6, stride=2
+            ),  # TODO: Get number of channels automatically
         ]
         self.model = nn.Sequential(*self.layers)
 
@@ -178,7 +180,7 @@ class AuvConvDecoder(nn.Module):
 
         # reshape_size = orig_shape[:-1] + list(self.shape)
         # mean = x.view(*reshape_size)
-        mean = x.view(orig_shape[:-1], -1)  # Make sample dimension flat
+        mean = x.view((*orig_shape[:-1], -1))  # Make sample dimension flat
 
         # Equivalent to making a multivariate diag
         # return td.Independent(td.Normal(mean, 1), len(self.shape))
@@ -192,14 +194,17 @@ class AuvDecoder(nn.Module):
         self.input_size = input_size
 
         self.lidar_decoder = AuvConvDecoder(input_size)
-        self.navigation_decoder = DenseDecoder(1024, output_size=6, layers=1, units=64)
+        self.navigation_decoder = nn.Sequential(
+            Linear(self.input_size, 64), nn.ELU(), Linear(64, 6)
+        )
 
     def forward(self, x):
-
+        leading_shape = x.shape[:-1]
         navigation_reconstruction = self.navigation_decoder(x)
         lidar_reconstruction = self.lidar_decoder(x)
 
-        mean = torch.cat((navigation_reconstruction, lidar_reconstruction), dim=1)
+        raw_mean = torch.cat((navigation_reconstruction, lidar_reconstruction), dim=-1)
+        mean = raw_mean.view((*leading_shape, -1))
         scale = 5e-3
         output_dist = td.Normal(mean, scale)
         return output_dist
@@ -258,7 +263,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         post = self.state[:4]
         action = self.state[4]
 
-        obs = restore_original_dimensions(obs, self.obs_space, "torch")
+        # obs = restore_original_dimensions(obs, self.obs_space, "torch")
         embed = self.encoder(obs)
         post, _ = self.dynamics.obs_step(post, action, embed)
         feat = self.dynamics.get_feature(post)

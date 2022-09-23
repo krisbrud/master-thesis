@@ -10,7 +10,7 @@ def test_auv_dreamer_initialization():
     register_gym_auv_scenarios()
 
     # Make a Dreamer instance
-    dreamer = auv_dreamer_factory("TestScenario1-v0")
+    dreamer = auv_dreamer_factory("TestScenario1-v0", num_envs_per_worker=2)
 
 
 if __name__ == "__main__":

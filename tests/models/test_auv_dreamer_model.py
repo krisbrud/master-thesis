@@ -27,7 +27,6 @@ from tests.models.model_utils import (
     _get_navigation_shape,
 )
 
-
 # TODO: Test encoder for different batch sizes
 @pytest.mark.parametrize("batch_size", [1, 7])
 def test_conv_encoder(batch_size):
@@ -63,17 +62,22 @@ def _make_mock_input(
     return mock_input
 
 
+def _mock_input(batch_size, input_size=(6 + 180 * 3)) -> torch.Tensor:
+    return torch.rand((batch_size, input_size))
+
+
 @pytest.mark.parametrize("batch_size", [1, 7])
-def test_encoder(batch_size: int):
+def test_encoder(batch_size):
     lidar_shape = _get_lidar_shape()
     navigation_shape = _get_navigation_shape()
     encoder = AuvEncoder(lidar_shape=lidar_shape, navigation_shape=navigation_shape)
 
-    mock_input = _make_mock_input(
-        batch_size=batch_size,
-        n_proprio_states=navigation_shape[0],
-        lidar_shape=lidar_shape,
-    )
+    mock_input = _mock_input(batch_size=batch_size)
+    # mock_input = _make_mock_input(
+    #     batch_size=batch_size,
+    #     n_proprio_states=navigation_shape[0],
+    #     lidar_shape=lidar_shape,
+    # )
     encoder(mock_input)
 
 
@@ -87,12 +91,12 @@ def test_conv_decoder(batch_size):
     lidar_shape = _get_lidar_shape()
 
     decoder = AuvConvDecoder(n_rssm_features, shape=lidar_shape)
-    reconstruction_dist = decoder.forward(mock_latent_embedding)
-    reconstruction = reconstruction_dist.sample()
+    reconstruction = decoder.forward(mock_latent_embedding)
 
     assert isinstance(reconstruction, torch.Tensor)
 
-    expected_shape = (batch_size, *lidar_shape)
+    flat_shape = lidar_shape[0] * lidar_shape[1]
+    expected_shape = (batch_size, flat_shape)
     assert reconstruction.shape == expected_shape, (
         "Reconstruction not of correct shape!"
         f"Expected shape {expected_shape} but got {reconstruction.shape}!"
@@ -105,19 +109,24 @@ def _make_mock_auv_env() -> gym.Env:
 
 
 @pytest.fixture
+def latent_size() -> int:
+    return 240
+
+
+@pytest.fixture
 def hidden_size() -> int:
     return 1024
 
 
 @pytest.fixture(name="latents", params=(1, 7))
-def _latents(request, hidden_size):
+def _latents(request, latent_size):
     batch_size = request.param
-    latents = torch.rand((batch_size, hidden_size))
+    latents = torch.rand((batch_size, latent_size))
     return latents
 
 
-def test_decoder(latents, hidden_size):
-    decoder = AuvDecoder(hidden_size)
+def test_decoder(latents, latent_size):
+    decoder = AuvDecoder(latent_size)
     out = decoder(latents)
 
 
