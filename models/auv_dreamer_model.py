@@ -178,7 +178,7 @@ class AuvConvDecoder(nn.Module):
 
         # reshape_size = orig_shape[:-1] + list(self.shape)
         # mean = x.view(*reshape_size)
-        mean = x.view(orig_shape[:-1], -1)
+        mean = x.view(orig_shape[:-1], -1)  # Make sample dimension flat
 
         # Equivalent to making a multivariate diag
         # return td.Independent(td.Normal(mean, 1), len(self.shape))
@@ -197,13 +197,12 @@ class AuvDecoder(nn.Module):
     def forward(self, x):
 
         navigation_reconstruction = self.navigation_decoder(x)
-        lidar_reconstruction = self.lidar_decoder(x).reshape(-1, 3 * 180)
+        lidar_reconstruction = self.lidar_decoder(x)
 
         mean = torch.cat((navigation_reconstruction, lidar_reconstruction), dim=1)
-        var = 5e-3
-        output_dist = td.Independent(td.Normal(mean, var), )
-        return out
-
+        scale = 5e-3
+        output_dist = td.Normal(mean, scale)
+        return output_dist
 
 
 # Represents all models in Dreamer, unifies them all into a single interface
