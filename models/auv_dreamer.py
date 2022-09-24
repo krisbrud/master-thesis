@@ -190,6 +190,8 @@ def get_auv_dreamer_config(
     # Use the specified environment and environment config
     dreamer_config.env = env_name
 
+    dreamer_config.batch_size = 100
+
     if env_config is not None:
         dreamer_config.environment(env_config=env_config)
 
