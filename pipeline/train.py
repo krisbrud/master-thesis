@@ -13,7 +13,7 @@ def main():
 
     env_name = "MovingObstaclesNoRules-v0"
     # auv_dreamer = auv_dreamer_factory(env_name)
-    dreamer_config = get_auv_dreamer_config()
+    dreamer_config = get_auv_dreamer_config(env_name=env_name)
 
     assert isinstance(dreamer_config, DreamerConfig)
 
