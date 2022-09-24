@@ -19,6 +19,7 @@ config = {
         "fcnet_hiddens": [64, 64],
         "fcnet_activation": "relu",
     },
+    "num_gpus": 1,
     # Set up a separate evaluation worker set for the
     # `algo.evaluate()` call after training (see below).
     "evaluation_num_workers": 1,
