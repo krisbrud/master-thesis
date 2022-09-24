@@ -71,7 +71,6 @@ class AuvConvEncoder(nn.Module):
     def forward(self, x):
         # TODO: Update
         # Flatten to [batch*horizon, 3, 180] in loss function
-        print(f"forward: {x.shape = }")
         orig_shape = list(x.size())
 
         # Last two dimensions are channels and bearings, the ones before may be
