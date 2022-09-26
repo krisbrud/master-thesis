@@ -180,29 +180,34 @@ def _get_auv_dreamer_model_options() -> dict:
     return model_config
 
 
-def auv_dreamer_factory(
-    env_name: str, env_config: Union[dict, None] = None, num_envs_per_worker=None
-) -> Dreamer:
-    """Instantiates the Dreamer algorithm with a default
-    model suitable for the gym-auv environment"""
+def get_auv_dreamer_config(
+    env_name: str, env_config: Union[dict, None] = None
+) -> DreamerConfig:
     # Instantiate the config
     dreamer_config = DreamerConfig()
     dreamer_config.framework(framework="torch")
 
     # Use the specified environment and environment config
     dreamer_config.env = env_name
-    # if env_config is not None:
-    #     dreamer_config.env_config
 
-    if num_envs_per_worker is not None:
-        dreamer_config.num_envs_per_worker = num_envs_per_worker
+    dreamer_config.batch_size = 100
+
+    if env_config is not None:
+        dreamer_config.environment(env_config=env_config)
 
     # Use the custom model
     model_options = _get_auv_dreamer_model_options()
     dreamer_config.training(dreamer_model=model_options)
 
-    # dreamer_config.preprocessor_pref = None
-    # dreamer_config._disable_preprocessor_api = True
+    return dreamer_config
+
+
+def auv_dreamer_factory(
+    env_name: str, env_config: Union[dict, None] = None, num_envs_per_worker=None
+) -> AuvDreamer:
+    """Instantiates the Dreamer algorithm with a default
+    model suitable for the gym-auv environment"""
+    dreamer_config = get_auv_dreamer_config(env_name=env_name, env_config=env_config)
 
     # Instantiate the algorithm
     # dreamer = Dreamer(config=dreamer_config)

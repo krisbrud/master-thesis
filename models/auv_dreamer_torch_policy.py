@@ -70,11 +70,11 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
 
-        if isinstance(self.observation_space, gym.spaces.Dict):
-            # Set observation to original
-            train_batch["obs"] = restore_original_dimensions(
-                train_batch["obs", self.observation_space, "torch"]
-            )
+        # if isinstance(self.observation_space, gym.spaces.Dict):
+        #     # Set observation to original
+        #     train_batch["obs"] = restore_original_dimensions(
+        #         train_batch["obs", self.observation_space, "torch"]
+        #     )
 
         # PlaNET Model Loss
         latent = self.model.encoder(train_batch["obs"])
