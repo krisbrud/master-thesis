@@ -1,10 +1,12 @@
 from ray import tune
 
 from pipeline.register_envs import register_gym_auv_scenarios
-from models.auv_dreamer import AuvDreamer, auv_dreamer_factory, get_auv_dreamer_config
-
+from models.auv_dreamer import (
+    AuvDreamer,
+)
+from models.config import get_auv_dreamer_config_dict
 from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
-from torch.cuda import is_available
+from torch import cuda
 
 import gym_auv
 
@@ -15,30 +17,25 @@ def main():
 
     env_name = "MovingObstaclesNoRules-v0"
     # auv_dreamer = auv_dreamer_factory(env_name)
-    dreamer_config = get_auv_dreamer_config(env_name=env_name)
+    dreamer_config = get_auv_dreamer_config_dict(env_name=env_name)
+    print(dreamer_config)
+    # assert isinstance(dreamer_config, DreamerConfig)
 
-    assert isinstance(dreamer_config, DreamerConfig)
-
-    if is_available():
+    if cuda.is_available():
         # Use GPU if available
-        dreamer_config.resources(num_gpus=1)
-
-    # Decrease batch size (and learning rates)
-    dreamer_config.batch_size = 10
-    dreamer_config.td_model_lr /= 5
-    dreamer_config.actor_lr /= 5
-    dreamer_config.critic_lr /= 5
-    dreamer_config.horizon = gym_auv.DEFAULT_CONFIG.episode.max_timesteps
+        dreamer_config["num_gpus"] = 1
+        # dreamer_config.resources(num_gpus=1)
 
     auv_dreamer = AuvDreamer(dreamer_config)
-    print("trying to save checkpoint!")
-    for i in range(10):
-        print("training iteration", i)
-        progress = auv_dreamer.train()
-        print("progress", progress)
+    # print("trying to save checkpoint!")
+    # n_training_iters = 1
+    # for i in range(n_training_iters):
+    #     print("training iteration", i)
+    #     progress = auv_dreamer.train()
+    #     print("progress", progress)
 
-        if i % 5 == 0:
-            auv_dreamer.save_checkpoint("results/")
+    #     if i % 5 == 0:
+    #         auv_dreamer.save_checkpoint("results/")
 
     print("evaluating!")
     results = auv_dreamer.evaluate()
