@@ -19,6 +19,30 @@
             "program": "${workspaceFolder}/playground/hello_gym_auv.py",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Python: Try Rendering",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/playground/try_rendering.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Train",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/pipeline/train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Python: Current File - all code",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }

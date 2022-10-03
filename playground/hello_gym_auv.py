@@ -49,7 +49,7 @@ def train():
         # "soft_horizon": 200,
         # Only for evaluation runs, render the env.
         # "evaluation_config": {
-        #     "render_mode": "2d",
+        #     "renderer": "2d",
         # },
     }
 

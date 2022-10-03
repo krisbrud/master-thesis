@@ -2,6 +2,7 @@ import gym
 import gym_auv
 
 from gym_auv.envs.testscenario import TestScenario1, TestScenario2
+from gym_auv.envs.movingobstacles import MovingObstaclesNoRules
 
 from stable_baselines3 import PPO
 import numpy as np
@@ -10,12 +11,11 @@ import numpy as np
 # env = gym.make(env_name)
 
 # Run stable_baselines3 to test that the rendering works
-render_mode = "2d"
-env = TestScenario2(
-    gym_auv.DEFAULT_CONFIG, test_mode=False, render_mode=render_mode, verbose=True
+renderer = "2d"
+env = TestScenario1(
+    gym_auv.DEFAULT_CONFIG, test_mode=False, renderer=renderer, verbose=True
 )
-
-straight_ahead_action = np.array([0.9, 0.0])
+# env = MovingObstaclesNoRules(gym_auv.MOVING_CONFIG, renderer=renderer)
 
 # model = PPO("MlpPolicy", env, verbose=1, n_steps=128)
 # model.learn(total_timesteps=500)
@@ -35,3 +35,5 @@ for i in range(1000):
 
     if done:
         obs = env.reset()
+
+env.close()
