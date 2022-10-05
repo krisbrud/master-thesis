@@ -1,17 +1,27 @@
 name: rllib
 channels:
+  - conda-forge
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=5.1=1_gnu
-  - ca-certificates=2022.07.19=h06a4308_0
-  - certifi=2022.6.15=py38h06a4308_0
+  - bzip2=1.0.8=h7f98852_4
+  - ca-certificates=2022.9.24=ha878542_0
+  - certifi=2022.9.24=pyhd8ed1ab_0
+  - ffmpeg=4.3.2=hca11adc_0
+  - freetype=2.10.4=h0708190_1
+  - gmp=6.2.1=h58526e2_0
+  - gnutls=3.6.13=h85f3911_1
+  - lame=3.100=h7f98852_1001
   - ld_impl_linux-64=2.38=h1181459_1
   - libffi=3.3=he6710b0_2
   - libgcc-ng=11.2.0=h1234567_1
   - libgomp=11.2.0=h1234567_1
+  - libpng=1.6.37=hbc83047_0
   - libstdcxx-ng=11.2.0=h1234567_1
   - ncurses=6.3=h5eee18b_3
+  - nettle=3.6=he412f7d_0
+  - openh264=2.1.1=h4ff587b_0
   - openssl=1.1.1q=h7f8727e_0
   - pip=22.1.2=py38h06a4308_0
   - python=3.8.13=h12debd9_0
@@ -20,6 +30,7 @@ dependencies:
   - sqlite=3.39.2=h5082296_0
   - tk=8.6.12=h1ccaba5_0
   - wheel=0.37.1=pyhd3eb1b0_0
+  - x264=1!161.3030=h7f98852_1
   - xz=5.2.5=h7f8727e_1
   - zlib=1.2.12=h7f8727e_2
   - pip:

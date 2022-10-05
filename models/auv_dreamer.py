@@ -8,6 +8,7 @@ from models.auv_dreamer_torch_policy import AuvDreamerTorchPolicy
 
 import logging
 import numpy as np
+import gym_auv
 
 # import random
 from typing import Optional
@@ -42,6 +43,8 @@ from ray.rllib.algorithms.dreamer.dreamer import (
     total_sampled_timesteps,
     DreamerIteration,
 )
+
+from models.config import get_auv_dreamer_config
 
 
 logger = logging.getLogger(__name__)
@@ -178,28 +181,6 @@ def _get_auv_dreamer_model_options() -> dict:
         "action_init_std": 5.0,
     }
     return model_config
-
-
-def get_auv_dreamer_config(
-    env_name: str, env_config: Union[dict, None] = None
-) -> DreamerConfig:
-    # Instantiate the config
-    dreamer_config = DreamerConfig()
-    dreamer_config.framework(framework="torch")
-
-    # Use the specified environment and environment config
-    dreamer_config.env = env_name
-
-    dreamer_config.batch_size = 100
-
-    if env_config is not None:
-        dreamer_config.environment(env_config=env_config)
-
-    # Use the custom model
-    model_options = _get_auv_dreamer_model_options()
-    dreamer_config.training(dreamer_model=model_options)
-
-    return dreamer_config
 
 
 def auv_dreamer_factory(
