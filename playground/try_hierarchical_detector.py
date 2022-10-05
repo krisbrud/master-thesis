@@ -2,7 +2,7 @@ from turtle import position
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches
-import shapely.geometry 
+import shapely.geometry
 import gym_auv
 
 from gym_auv.objects.obstacles import BaseObstacle, CircleParams, CircularObstacle
@@ -54,7 +54,7 @@ def plot_situation(vessel: Vessel, obstacle: BaseObstacle):
 
     n_obstacles_per_ray = np.array([len(obsts) for obsts in obstacles_per_ray])
     idx_rays_with_obstacles = n_obstacles_per_ray > 0
-    plt.plot(ray_x[:,idx_rays_with_obstacles], ray_y[:, idx_rays_with_obstacles], "b")
+    plt.plot(ray_x[:, idx_rays_with_obstacles], ray_y[:, idx_rays_with_obstacles], "b")
     heading_line_x = np.array([0, np.sin(heading)]) * sensor_range + vessel.position[1]
     heading_line_y = np.array([0, np.cos(heading)]) * sensor_range + vessel.position[0]
     plt.plot(heading_line_x, heading_line_y, "g")
