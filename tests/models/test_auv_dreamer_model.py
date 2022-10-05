@@ -1,3 +1,4 @@
+import math
 from typing import Dict, List, Tuple
 import torch
 import pytest
@@ -24,7 +25,7 @@ import gym
 from tests.models.model_utils import (
     _get_lidar_shape,
     _get_rssm_feature_size,
-    _get_navigation_shape,
+    _get_dense_size,
 )
 
 # TODO: Test encoder for different batch sizes
@@ -62,17 +63,18 @@ def _make_mock_input(
     return mock_input
 
 
-def _mock_input(batch_size, input_size=(6 + 180 * 3)) -> torch.Tensor:
+def _mock_input(batch_size, input_size) -> torch.Tensor:
     return torch.rand((batch_size, input_size))
 
 
 @pytest.mark.parametrize("batch_size", [1, 7])
 def test_encoder(batch_size):
     lidar_shape = _get_lidar_shape()
-    navigation_shape = _get_navigation_shape()
-    encoder = AuvEncoder(lidar_shape=lidar_shape, navigation_shape=navigation_shape)
+    dense_size = _get_dense_size()
+    encoder = AuvEncoder(dense_size, lidar_shape)
 
-    mock_input = _mock_input(batch_size=batch_size)
+    input_size = dense_size + math.prod(lidar_shape)
+    mock_input = _mock_input(batch_size=batch_size, input_size=input_size)
     # mock_input = _make_mock_input(
     #     batch_size=batch_size,
     #     n_proprio_states=navigation_shape[0],
@@ -90,7 +92,7 @@ def test_conv_decoder(batch_size):
 
     lidar_shape = _get_lidar_shape()
 
-    decoder = AuvConvDecoder(n_rssm_features, shape=lidar_shape)
+    decoder = AuvConvDecoder(n_rssm_features, output_shape=lidar_shape)
     reconstruction = decoder.forward(mock_latent_embedding)
 
     assert isinstance(reconstruction, torch.Tensor)
@@ -126,7 +128,9 @@ def _latents(request, latent_size):
 
 
 def test_decoder(latents, latent_size):
-    decoder = AuvDecoder(latent_size)
+    dense_size = _get_dense_size()
+    lidar_shape = _get_lidar_shape()
+    decoder = AuvDecoder(latent_size, dense_size, lidar_shape)
     out = decoder(latents)
 
 
