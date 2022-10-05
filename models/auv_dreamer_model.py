@@ -231,13 +231,13 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.stoch_size = model_config["stoch_size"]
         self.hidden_size = model_config["hidden_size"]
 
-        self.dense_shape = model_config["dense_shape"]
+        self.dense_size = model_config["dense_size"]
         self.lidar_size = model_config["lidar_shape"]
 
         self.action_size = action_space.shape[0]
 
         # self.encoder = AuvConvEncoder(self.depth)
-        self.encoder = AuvEncoder(self.dense_shape, self.lidar_size)
+        self.encoder = AuvEncoder(self.dense_size, self.lidar_size)
         self.decoder = AuvDecoder(
             self.stoch_size + self.deter_size, self.dense_size, self.lidar_shape
         )

@@ -1,3 +1,4 @@
+from pprint import pprint
 from ray import tune
 
 from pipeline.register_envs import register_gym_auv_scenarios
@@ -11,17 +12,24 @@ from ray.rllib.algorithms import Algorithm
 
 import gym_auv
 
-def train_iteration(algo: Algorithm):
+
+def train_iteration(algo: Algorithm, verbose=True):
     progress = algo.train()
+    if verbose:
+        pprint(progress)
+
 
 def main():
     # Register environments from gym_auv
     register_gym_auv_scenarios()
 
     env_name = "MovingObstaclesNoRules-v0"
+    gym_auv_config = gym_auv.Config()
     # auv_dreamer = auv_dreamer_factory(env_name)
-    dreamer_config = get_auv_dreamer_config_dict(env_name=env_name)
-    print(dreamer_config)
+    dreamer_config = get_auv_dreamer_config_dict(
+        env_name=env_name, gym_auv_config = gym_auv_config
+    )
+    pprint(dreamer_config)
     # assert isinstance(dreamer_config, DreamerConfig)
 
     if cuda.is_available():
