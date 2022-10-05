@@ -6,3 +6,4 @@ TODO.md
 
 # Ignore video files from recorder
 *.mp4
+results/*

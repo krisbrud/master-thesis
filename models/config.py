@@ -63,9 +63,9 @@ def get_auv_dreamer_config_dict(env_name: str, gym_auv_config: gym_auv.Config) -
         # Use the custom model
         "dreamer_model": _get_auv_dreamer_model_options(gym_auv_config),
         # "record_env": True,
-        "prefill_timesteps": 0,
+        # "prefill_timesteps": 0,
         "evaluation_duration": 1,
-        "render_env": True,
+        "render_env": False,
         "evaluation_config": {
             "render_env": True,
         },

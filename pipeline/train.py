@@ -39,18 +39,18 @@ def main():
 
     auv_dreamer = AuvDreamer(dreamer_config)
     # print("trying to save checkpoint!")
-    # n_training_iters = 1
-    # for i in range(n_training_iters):
-    #     print("training iteration", i)
-    #     progress = auv_dreamer.train()
-    #     print("progress", progress)
+    n_training_iters = 1
+    for i in range(n_training_iters):
+        print("training iteration", i)
+        progress = auv_dreamer.train()
+        print("progress", progress)
 
-    #     if i % 5 == 0:
-    #         auv_dreamer.save_checkpoint("results/")
+        if i % 5 == 0:
+            auv_dreamer.save_checkpoint("results/")
 
     print("evaluating!")
     results = auv_dreamer.evaluate()
-    print("results:\n", results)
+    pprint(results)
 
 
 if __name__ == "__main__":
