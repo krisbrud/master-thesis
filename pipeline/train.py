@@ -3,17 +3,23 @@ from ray import tune
 from pipeline.register_envs import register_gym_auv_scenarios
 from models.auv_dreamer import AuvDreamer, auv_dreamer_factory, get_auv_dreamer_config
 
-from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
+from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig, Dreamer
 from torch.cuda import is_available
 
 import gym_auv
 
+def make_env_config() -> dict:
+    config = gym_auv.MOVING_CONFIG
+
+    config.vessel.sensor_use_velocity_observations = False
+    
 
 def main():
     # Register environments from gym_auv
     register_gym_auv_scenarios()
 
     env_name = "MovingObstaclesNoRules-v0"
+
     # auv_dreamer = auv_dreamer_factory(env_name)
     dreamer_config = get_auv_dreamer_config(env_name=env_name)
 
@@ -30,15 +36,15 @@ def main():
     dreamer_config.critic_lr /= 5
     dreamer_config.horizon = gym_auv.DEFAULT_CONFIG.episode.max_timesteps
 
-    auv_dreamer = AuvDreamer(dreamer_config)
-    print("trying to save checkpoint!")
-    for i in range(10):
-        print("training iteration", i)
-        progress = auv_dreamer.train()
-        print("progress", progress)
+    auv_dreamer = Dreamer(dreamer_config)
+    # print("trying to save checkpoint!")
+    # for i in range(10):
+    #     print("training iteration", i)
+    #     progress = auv_dreamer.train()
+    #     print("progress", progress)
 
-        if i % 5 == 0:
-            auv_dreamer.save_checkpoint("results/")
+    #     if i % 5 == 0:
+    #         auv_dreamer.save_checkpoint("results/")
 
     print("evaluating!")
     results = auv_dreamer.evaluate()

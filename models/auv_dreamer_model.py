@@ -101,7 +101,7 @@ class AuvEncoder(nn.Module):
         self.lidar_encoder = AuvConvEncoder()
 
         self.navigation_encoder = nn.Sequential(
-            Linear(6, self.nav_hidden_size),
+            Linear(navigation_shape[0], self.nav_hidden_size),
             nn.ReLU(),
             Linear(self.nav_hidden_size, self.nav_output_size),
         )
