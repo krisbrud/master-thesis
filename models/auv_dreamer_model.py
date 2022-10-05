@@ -121,7 +121,7 @@ class AuvEncoder(nn.Module):
         )
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
-        nav_obs, lidar_obs = unflatten_obs(x)
+        nav_obs, lidar_obs = unflatten_obs(x, lidar_shape=self.lidar_shape, dense_size=self.dense_size)
         nav_latents = self.navigation_encoder(nav_obs)
 
         lidar_latents = self.lidar_encoder(lidar_obs)
@@ -232,12 +232,12 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.hidden_size = model_config["hidden_size"]
 
         self.dense_size = model_config["dense_size"]
-        self.lidar_size = model_config["lidar_shape"]
+        self.lidar_shape = model_config["lidar_shape"]
 
         self.action_size = action_space.shape[0]
 
         # self.encoder = AuvConvEncoder(self.depth)
-        self.encoder = AuvEncoder(self.dense_size, self.lidar_size)
+        self.encoder = AuvEncoder(self.dense_size, self.lidar_shape)
         self.decoder = AuvDecoder(
             self.stoch_size + self.deter_size, self.dense_size, self.lidar_shape
         )

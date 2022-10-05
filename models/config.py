@@ -7,6 +7,10 @@ from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
 def _get_auv_dreamer_model_options(config: gym_auv.Config) -> dict:
     model_config = {
         "custom_model": AuvDreamerModel,
+        # "custom_model_config": {
+        "dense_size": config.vessel.dense_observation_size,
+        "lidar_shape": config.vessel.lidar_shape,
+        # },
         # RSSM/PlaNET parameters
         "deter_size": 200,
         "stoch_size": 30,
@@ -16,8 +20,6 @@ def _get_auv_dreamer_model_options(config: gym_auv.Config) -> dict:
         "hidden_size": 400,
         # Action STD
         "action_init_std": 5.0,
-        "dense_size": config.vessel.dense_observation_size,
-        "lidar_shape": config.vessel.lidar_shape,
     }
     return model_config
 
