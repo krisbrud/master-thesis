@@ -10,11 +10,12 @@ import numpy as np
 # env = gym.make(env_name)
 
 # Run stable_baselines3 to test that the rendering works
-render_mode = "2d"
 env = TestScenario2(
-    gym_auv.DEFAULT_CONFIG, test_mode=False, render_mode=render_mode, verbose=True
+    gym_auv.DEFAULT_CONFIG, test_mode=False, verbose=True
 )
-
+# env = TestScenario1(
+#     gym_auv.DEFAULT_CONFIG, test_mode=False, verbose=True
+# )
 straight_ahead_action = np.array([0.9, 0.0])
 
 # model = PPO("MlpPolicy", env, verbose=1, n_steps=128)
@@ -30,7 +31,7 @@ for i in range(1000):
 
     obs, reward, done, info = env.step(action)
     # print("should start render now!")
-    env.render()
+    env.render(mode="human")
     # print("should have rendered now!")
 
     if done:

@@ -7,9 +7,12 @@ from models.auv_dreamer import (
 from models.config import get_auv_dreamer_config_dict
 from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
 from torch import cuda
+from ray.rllib.algorithms import Algorithm
 
 import gym_auv
 
+def train_iteration(algo: Algorithm):
+    progress = algo.train()
 
 def main():
     # Register environments from gym_auv
