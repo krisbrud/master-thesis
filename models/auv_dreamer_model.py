@@ -4,7 +4,7 @@
 # import torch
 import math
 from turtle import forward
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Union
 import torch
 from torch import nn
 import torch.functional as F
@@ -95,7 +95,7 @@ class AuvConvEncoder(nn.Module):
 class AuvEncoder(nn.Module):
     """Joint encoder for proprioceptive and lidar observations in gym_auv"""
 
-    def __init__(self, dense_size: int, lidar_shape=(3, 180)):
+    def __init__(self, dense_size: int, lidar_shape: Union[Tuple[int, int], None]):
         super().__init__()
         self.lidar_shape = lidar_shape
         self.dense_size = dense_size
@@ -113,20 +113,31 @@ class AuvEncoder(nn.Module):
             nn.ReLU(),
             Linear(self.nav_hidden_size, self.nav_output_size),
         )
-        self.conv_encoder = AuvConvEncoder(lidar_shape)
+        if not self.use_lidar:
+            # Don't use lidar
+            self.conv_encoder = None
+        else: 
+            self.conv_encoder = AuvConvEncoder(lidar_shape)
         self.joint_head = nn.Sequential(
             Linear(
                 self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
             )
         )
 
-    def forward(self, x: Dict[str, TensorType]) -> TensorType:
-        nav_obs, lidar_obs = unflatten_obs(x, lidar_shape=self.lidar_shape, dense_size=self.dense_size)
-        nav_latents = self.navigation_encoder(nav_obs)
+    @property 
+    def use_lidar(self) -> bool:
+        return self.lidar_shape is not None
 
-        lidar_latents = self.lidar_encoder(lidar_obs)
-        concat_latents = torch.cat((nav_latents, lidar_latents), dim=-1)
-        out = self.joint_head(concat_latents)
+    def forward(self, x: Dict[str, TensorType]) -> TensorType:
+        if self.use_lidar:
+            nav_obs, lidar_obs = unflatten_obs(x, lidar_shape=self.lidar_shape, dense_size=self.dense_size)
+            nav_latents = self.navigation_encoder(nav_obs)
+
+            lidar_latents = self.lidar_encoder(lidar_obs)
+            concat_latents = torch.cat((nav_latents, lidar_latents), dim=-1)
+            out = self.joint_head(concat_latents)
+        else:
+            out = self.navigation_encoder(x)
 
         return out
 

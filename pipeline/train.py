@@ -1,3 +1,4 @@
+import argparse
 from pprint import pprint
 from ray import tune
 
@@ -23,6 +24,12 @@ def main():
     # Register environments from gym_auv
     register_gym_auv_scenarios()
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train-iterations", help="How many training iterations (rollouts + learning) to perform during the course of training.", default=1000)
+    args = parser.parse_args()
+    n_training_iters = args.train_iterations
+
+
     env_name = "MovingObstaclesNoRules-v0"
     gym_auv_config = gym_auv.Config()
     # auv_dreamer = auv_dreamer_factory(env_name)
@@ -38,14 +45,13 @@ def main():
         # dreamer_config.resources(num_gpus=1)
 
     auv_dreamer = AuvDreamer(dreamer_config)
-    # print("trying to save checkpoint!")
-    n_training_iters = 1
+    # print("trying to save checkpoint!")uuu
     for i in range(n_training_iters):
         print("training iteration", i)
         progress = auv_dreamer.train()
-        print("progress", progress)
+        pprint(progress)
 
-        if i % 5 == 0:
+        if i % 100 == 0:
             auv_dreamer.save_checkpoint("results/")
 
     print("evaluating!")
