@@ -95,8 +95,8 @@ class AuvDreamerConfig(AlgorithmConfig):
         self.dreamer_model = {
             "custom_model": DreamerModel,
             # RSSM/PlaNET parameters
-            "deter_size": 200,
-            "stoch_size": 30,
+            "deter_size": 20, # 200,
+            "stoch_size": 3, # 30,
             # CNN Decoder Encoder
             "depth_size": 32,
             # General Network Parameters
@@ -114,7 +114,7 @@ class AuvDreamerConfig(AlgorithmConfig):
         # .rollouts()
         self.num_workers = 0
         self.num_envs_per_worker = 1
-        self.horizon = 1000
+        self.horizon = 10000
         self.batch_mode = "complete_episodes"
         self.clip_actions = False
 
