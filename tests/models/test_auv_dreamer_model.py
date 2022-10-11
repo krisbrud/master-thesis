@@ -1,3 +1,4 @@
+import math
 from typing import Dict, List, Tuple
 import torch
 import pytest
@@ -20,11 +21,12 @@ from gym_auv import Config
 # from ray.rllib.algorithms.dreamer.utils import Linear
 # from ray.rllib.models.torch.misc import Reshape
 import gym
+from models.config import get_auv_dreamer_config_dict
 
 from tests.models.model_utils import (
     _get_lidar_shape,
     _get_rssm_feature_size,
-    _get_navigation_shape,
+    _get_dense_size,
 )
 
 # TODO: Test encoder for different batch sizes
@@ -62,17 +64,18 @@ def _make_mock_input(
     return mock_input
 
 
-def _mock_input(batch_size, input_size=(6 + 180 * 3)) -> torch.Tensor:
+def _mock_input(batch_size, input_size) -> torch.Tensor:
     return torch.rand((batch_size, input_size))
 
 
 @pytest.mark.parametrize("batch_size", [1, 7])
 def test_encoder(batch_size):
     lidar_shape = _get_lidar_shape()
-    navigation_shape = _get_navigation_shape()
-    encoder = AuvEncoder(lidar_shape=lidar_shape, navigation_shape=navigation_shape)
+    dense_size = _get_dense_size()
+    encoder = AuvEncoder(dense_size, lidar_shape)
 
-    mock_input = _mock_input(batch_size=batch_size)
+    input_size = dense_size + math.prod(lidar_shape)
+    mock_input = _mock_input(batch_size=batch_size, input_size=input_size)
     # mock_input = _make_mock_input(
     #     batch_size=batch_size,
     #     n_proprio_states=navigation_shape[0],
@@ -90,7 +93,7 @@ def test_conv_decoder(batch_size):
 
     lidar_shape = _get_lidar_shape()
 
-    decoder = AuvConvDecoder(n_rssm_features, shape=lidar_shape)
+    decoder = AuvConvDecoder(n_rssm_features, output_shape=lidar_shape)
     reconstruction = decoder.forward(mock_latent_embedding)
 
     assert isinstance(reconstruction, torch.Tensor)
@@ -126,7 +129,9 @@ def _latents(request, latent_size):
 
 
 def test_decoder(latents, latent_size):
-    decoder = AuvDecoder(latent_size)
+    dense_size = _get_dense_size()
+    lidar_shape = _get_lidar_shape()
+    decoder = AuvDecoder(latent_size, dense_size, lidar_shape)
     out = decoder(latents)
 
 
@@ -139,7 +144,12 @@ def test_auv_dreamer_model_initialization():
     action_space = mock_auv_env.action_space
 
     num_outputs = 1  # TODO find out value of this
-    model_config = _get_auv_dreamer_model_options()
+    # model_config = _get_auv_dreamer_model_options()
+    env_name = "TestScenario1-v0"
+    auv_dreamer_config = get_auv_dreamer_config_dict(
+        env_name=env_name, gym_auv_config=gym_auv.DEFAULT_CONFIG
+    )
+    model_config = auv_dreamer_config["dreamer_model"]
     name = "dreamer-test"
 
     auv_dreamer_model = AuvDreamerModel(

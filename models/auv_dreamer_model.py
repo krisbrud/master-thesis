@@ -2,8 +2,9 @@
 # https://github.com/ray-project/ray/blob/ea6d53dbf35a56bb87ecdfa2cc23bc9518a05f15/rllib/algorithms/dreamer/dreamer_model.py
 
 # import torch
+import math
 from turtle import forward
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Union
 import torch
 from torch import nn
 import torch.functional as F
@@ -37,7 +38,10 @@ class AuvConvEncoder(nn.Module):
     """
 
     def __init__(
-        self, depth: int = 32, act: ActFunc = None, shape: Tuple[int] = (3, 180)
+        self,
+        shape: Tuple[int],
+        depth: int = 32,
+        act: ActFunc = None,
     ):
         """Initializes Conv Encoder
 
@@ -91,21 +95,37 @@ class AuvConvEncoder(nn.Module):
 class AuvEncoder(nn.Module):
     """Joint encoder for proprioceptive and lidar observations in gym_auv"""
 
-    def __init__(self, navigation_shape=(6,), lidar_shape=(3, 180)):
+    def __init__(
+        self, dense_size: int, lidar_shape: Tuple[int, int], use_lidar: bool = True
+    ):
         super().__init__()
+        self.lidar_shape = lidar_shape
+        self.dense_size = dense_size
+        self.use_lidar = use_lidar
+
+        # if self.use_lidar:
+        #     self.flattened_size = self.dense_size + lidar_shape[0] * lidar_shape[1]
+        # else:
+        #     self.flattened_size = self.dense_size
+
         self.nav_hidden_size = 64
         self.nav_output_size = 32
-        self.lidar_encoded_size = 256 * 9  # TODO: Refactor so this is given as argument
         self.hidden_output_size = 1024
 
-        self.lidar_encoder = AuvConvEncoder()
+        if self.use_lidar:
+            self.lidar_encoder = AuvConvEncoder(shape=lidar_shape)
+            self.lidar_encoded_size = (
+                256 * 9
+            )  # TODO: Refactor so this is given as argument
+        else:
+            self.lidar_encoder = None
+            self.lidar_encoded_size = 0
 
         self.navigation_encoder = nn.Sequential(
-            Linear(6, self.nav_hidden_size),
+            Linear(self.dense_size, self.nav_hidden_size),
             nn.ReLU(),
             Linear(self.nav_hidden_size, self.nav_output_size),
         )
-        self.conv_encoder = AuvConvEncoder(shape=lidar_shape)
         self.joint_head = nn.Sequential(
             Linear(
                 self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
@@ -113,13 +133,18 @@ class AuvEncoder(nn.Module):
         )
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
-        nav_obs, lidar_obs = unflatten_obs(x)
-        nav_latents = self.navigation_encoder(nav_obs)
+        if self.use_lidar:
+            nav_obs, lidar_obs = unflatten_obs(
+                x, lidar_shape=self.lidar_shape, dense_size=self.dense_size
+            )
+            nav_latents = self.navigation_encoder(nav_obs)
 
-        lidar_latents = self.lidar_encoder(lidar_obs)
+            lidar_latents = self.lidar_encoder(lidar_obs)
+            latents = torch.cat((nav_latents, lidar_latents), dim=-1)
+        else:
+            latents = self.navigation_encoder(x)
 
-        concat_latents = torch.cat((nav_latents, lidar_latents), dim=-1)
-        out = self.joint_head(concat_latents)
+        out = self.joint_head(latents)
 
         return out
 
@@ -136,9 +161,9 @@ class AuvConvDecoder(nn.Module):
     def __init__(
         self,
         input_size: int,
+        output_shape: Tuple[int],
         depth: int = 32,
         act: ActFunc = None,
-        shape: Tuple[int] = (3 * 180,),
     ):
         """Initializes a ConvDecoder instance.
         Args:
@@ -153,7 +178,7 @@ class AuvConvDecoder(nn.Module):
         if not act:
             self.act = nn.ReLU
         self.depth = depth
-        self.shape = shape
+        self.output_shape = output_shape
 
         self.layers = [
             Linear(input_size, 32 * self.depth),
@@ -167,7 +192,7 @@ class AuvConvDecoder(nn.Module):
             ConvTranspose1d(2 * self.depth, self.depth, 6, stride=2),
             self.act(),
             ConvTranspose1d(
-                self.depth, 3, 6, stride=2
+                self.depth, self.output_shape[0], 6, stride=2
             ),  # TODO: Get number of channels automatically
         ]
         self.model = nn.Sequential(*self.layers)
@@ -187,22 +212,39 @@ class AuvConvDecoder(nn.Module):
 
 
 class AuvDecoder(nn.Module):
-    def __init__(self, input_size: int) -> None:
+    def __init__(
+        self,
+        input_size: int,
+        dense_size: int,
+        lidar_shape: Tuple[int, int],
+        use_lidar: bool = True,
+    ) -> None:
         super().__init__()
 
         self.input_size = input_size
+        self.lidar_shape = lidar_shape
+        self.use_lidar = use_lidar
 
-        self.lidar_decoder = AuvConvDecoder(input_size)
+        if self.use_lidar:
+            self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
+        else:
+            self.lidar_decoder = None
         self.navigation_decoder = nn.Sequential(
-            Linear(self.input_size, 64), nn.ELU(), Linear(64, 6)
+            Linear(self.input_size, 64), nn.ELU(), Linear(64, dense_size)
         )
 
     def forward(self, x):
         leading_shape = x.shape[:-1]
         navigation_reconstruction = self.navigation_decoder(x)
-        lidar_reconstruction = self.lidar_decoder(x)
 
-        raw_mean = torch.cat((navigation_reconstruction, lidar_reconstruction), dim=-1)
+        if self.use_lidar:
+            lidar_reconstruction = self.lidar_decoder(x)
+            raw_mean = torch.cat(
+                (navigation_reconstruction, lidar_reconstruction), dim=-1
+            )
+        else:
+            raw_mean = navigation_reconstruction
+
         mean = raw_mean.view((*leading_shape, -1))
         scale = 5e-3
         output_dist = td.Normal(mean, scale)
@@ -222,11 +264,22 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.stoch_size = model_config["stoch_size"]
         self.hidden_size = model_config["hidden_size"]
 
+        self.dense_size = model_config["dense_size"]
+        self.lidar_shape = model_config["lidar_shape"]
+        self.use_lidar = model_config["use_lidar"]
+
         self.action_size = action_space.shape[0]
 
         # self.encoder = AuvConvEncoder(self.depth)
-        self.encoder = AuvEncoder()
-        self.decoder = AuvDecoder(self.stoch_size + self.deter_size)
+        self.encoder = AuvEncoder(
+            self.dense_size, self.lidar_shape, use_lidar=self.use_lidar
+        )
+        self.decoder = AuvDecoder(
+            self.stoch_size + self.deter_size,
+            self.dense_size,
+            self.lidar_shape,
+            use_lidar=self.use_lidar,
+        )
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
         )

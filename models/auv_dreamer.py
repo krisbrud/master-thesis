@@ -4,6 +4,7 @@ import gym
 
 from models.auv_dreamer_model import AuvDreamerModel
 from models.auv_dreamer_torch_policy import AuvDreamerTorchPolicy
+from models.auv_dreamer_config import AuvDreamerConfig
 
 
 import logging
@@ -44,7 +45,7 @@ from ray.rllib.algorithms.dreamer.dreamer import (
     DreamerIteration,
 )
 
-from models.config import get_auv_dreamer_config
+from models.config import get_auv_dreamer_config, get_auv_dreamer_config_dict
 
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ class AuvDreamer(Algorithm):
     @classmethod
     @override(Algorithm)
     def get_default_config(cls) -> AlgorithmConfigDict:
-        return DreamerConfig().to_dict()
+        return AuvDreamerConfig().to_dict()
 
     @override(Algorithm)
     def validate_config(self, config: AlgorithmConfigDict) -> None:

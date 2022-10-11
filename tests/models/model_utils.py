@@ -44,11 +44,11 @@ def _get_lidar_shape() -> Tuple[int, int]:
     return lidar_shape
 
 
-def _get_navigation_shape() -> Tuple[int, int]:
+def _get_dense_size() -> int:
     # Returns a tuple of the shape of the lidar measurements of a single timestep
-    navigation_shape = (6,)
+    dense_size = 6
 
-    return navigation_shape
+    return dense_size
 
 
 def _get_rssm_feature_size() -> int:
