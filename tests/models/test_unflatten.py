@@ -10,10 +10,13 @@ from models.unflatten_obs import unflatten_obs
 def _flat_obs(request) -> torch.TensorType:
     batch_size = request.param
     return torch.Tensor(list(range(546))).reshape(-1, 546)
-
+# @pytest.fixture
+# def flat_obs() -> torch.TensorType:
+#     return torch.Tensor(list(range(546))).reshape(-1, 546)
 
 @pytest.fixture
 def nav_obs(flat_obs) -> torch.TensorType:
+    flat_obs = torch.Tensor(list(range(546))).reshape(-1, 546)
     nav_obs, _ = unflatten_obs(flat_obs)
     return nav_obs
 

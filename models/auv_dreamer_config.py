@@ -107,6 +107,7 @@ class AuvDreamerConfig(AlgorithmConfig):
             # gym-auv specific settings
             "dense_size": DEFAULT_CONFIG.vessel.dense_observation_size,
             "lidar_shape": DEFAULT_CONFIG.vessel.lidar_shape,
+            "use_lidar": DEFAULT_CONFIG.vessel.use_lidar
         }
 
         # Override some of AlgorithmConfig's default values with PPO-specific values.

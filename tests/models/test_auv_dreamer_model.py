@@ -21,6 +21,7 @@ from gym_auv import Config
 # from ray.rllib.algorithms.dreamer.utils import Linear
 # from ray.rllib.models.torch.misc import Reshape
 import gym
+from models.config import get_auv_dreamer_config_dict
 
 from tests.models.model_utils import (
     _get_lidar_shape,
@@ -143,7 +144,12 @@ def test_auv_dreamer_model_initialization():
     action_space = mock_auv_env.action_space
 
     num_outputs = 1  # TODO find out value of this
-    model_config = _get_auv_dreamer_model_options()
+    # model_config = _get_auv_dreamer_model_options()
+    env_name = "TestScenario1-v0"
+    auv_dreamer_config = get_auv_dreamer_config_dict(
+        env_name=env_name, gym_auv_config=gym_auv.DEFAULT_CONFIG
+    )
+    model_config = auv_dreamer_config["dreamer_model"]
     name = "dreamer-test"
 
     auv_dreamer_model = AuvDreamerModel(

@@ -95,49 +95,56 @@ class AuvConvEncoder(nn.Module):
 class AuvEncoder(nn.Module):
     """Joint encoder for proprioceptive and lidar observations in gym_auv"""
 
-    def __init__(self, dense_size: int, lidar_shape: Union[Tuple[int, int], None]):
+    def __init__(
+        self, dense_size: int, lidar_shape: Tuple[int, int], use_lidar: bool = True
+    ):
         super().__init__()
         self.lidar_shape = lidar_shape
         self.dense_size = dense_size
-        self.flattened_size = self.dense_size + lidar_shape[0] * lidar_shape[1]
+        self.use_lidar = use_lidar
+
+        # if self.use_lidar:
+        #     self.flattened_size = self.dense_size + lidar_shape[0] * lidar_shape[1]
+        # else:
+        #     self.flattened_size = self.dense_size
 
         self.nav_hidden_size = 64
         self.nav_output_size = 32
-        self.lidar_encoded_size = 256 * 9  # TODO: Refactor so this is given as argument
         self.hidden_output_size = 1024
 
-        self.lidar_encoder = AuvConvEncoder(shape=lidar_shape)
+        if self.use_lidar:
+            self.lidar_encoder = AuvConvEncoder(shape=lidar_shape)
+            self.lidar_encoded_size = (
+                256 * 9
+            )  # TODO: Refactor so this is given as argument
+        else:
+            self.lidar_encoder = None
+            self.lidar_encoded_size = 0
 
         self.navigation_encoder = nn.Sequential(
             Linear(self.dense_size, self.nav_hidden_size),
             nn.ReLU(),
             Linear(self.nav_hidden_size, self.nav_output_size),
         )
-        if not self.use_lidar:
-            # Don't use lidar
-            self.conv_encoder = None
-        else: 
-            self.conv_encoder = AuvConvEncoder(lidar_shape)
         self.joint_head = nn.Sequential(
             Linear(
                 self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
             )
         )
 
-    @property 
-    def use_lidar(self) -> bool:
-        return self.lidar_shape is not None
-
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
         if self.use_lidar:
-            nav_obs, lidar_obs = unflatten_obs(x, lidar_shape=self.lidar_shape, dense_size=self.dense_size)
+            nav_obs, lidar_obs = unflatten_obs(
+                x, lidar_shape=self.lidar_shape, dense_size=self.dense_size
+            )
             nav_latents = self.navigation_encoder(nav_obs)
 
             lidar_latents = self.lidar_encoder(lidar_obs)
-            concat_latents = torch.cat((nav_latents, lidar_latents), dim=-1)
-            out = self.joint_head(concat_latents)
+            latents = torch.cat((nav_latents, lidar_latents), dim=-1)
         else:
-            out = self.navigation_encoder(x)
+            latents = self.navigation_encoder(x)
+
+        out = self.joint_head(latents)
 
         return out
 
@@ -206,13 +213,22 @@ class AuvConvDecoder(nn.Module):
 
 class AuvDecoder(nn.Module):
     def __init__(
-        self, input_size: int, dense_size: int, lidar_shape: Tuple[int, int]
+        self,
+        input_size: int,
+        dense_size: int,
+        lidar_shape: Tuple[int, int],
+        use_lidar: bool = True,
     ) -> None:
         super().__init__()
 
         self.input_size = input_size
+        self.lidar_shape = lidar_shape
+        self.use_lidar = use_lidar
 
-        self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
+        if self.use_lidar:
+            self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
+        else:
+            self.lidar_decoder = None
         self.navigation_decoder = nn.Sequential(
             Linear(self.input_size, 64), nn.ELU(), Linear(64, dense_size)
         )
@@ -220,9 +236,15 @@ class AuvDecoder(nn.Module):
     def forward(self, x):
         leading_shape = x.shape[:-1]
         navigation_reconstruction = self.navigation_decoder(x)
-        lidar_reconstruction = self.lidar_decoder(x)
 
-        raw_mean = torch.cat((navigation_reconstruction, lidar_reconstruction), dim=-1)
+        if self.use_lidar:
+            lidar_reconstruction = self.lidar_decoder(x)
+            raw_mean = torch.cat(
+                (navigation_reconstruction, lidar_reconstruction), dim=-1
+            )
+        else:
+            raw_mean = navigation_reconstruction
+
         mean = raw_mean.view((*leading_shape, -1))
         scale = 5e-3
         output_dist = td.Normal(mean, scale)
@@ -244,13 +266,19 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
 
         self.dense_size = model_config["dense_size"]
         self.lidar_shape = model_config["lidar_shape"]
+        self.use_lidar = model_config["use_lidar"]
 
         self.action_size = action_space.shape[0]
 
         # self.encoder = AuvConvEncoder(self.depth)
-        self.encoder = AuvEncoder(self.dense_size, self.lidar_shape)
+        self.encoder = AuvEncoder(
+            self.dense_size, self.lidar_shape, use_lidar=self.use_lidar
+        )
         self.decoder = AuvDecoder(
-            self.stoch_size + self.deter_size, self.dense_size, self.lidar_shape
+            self.stoch_size + self.deter_size,
+            self.dense_size,
+            self.lidar_shape,
+            use_lidar=self.use_lidar,
         )
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size

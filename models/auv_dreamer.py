@@ -45,7 +45,7 @@ from ray.rllib.algorithms.dreamer.dreamer import (
     DreamerIteration,
 )
 
-from models.config import get_auv_dreamer_config_dict
+from models.config import get_auv_dreamer_config, get_auv_dreamer_config_dict
 
 
 logger = logging.getLogger(__name__)

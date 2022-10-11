@@ -20,6 +20,8 @@ def _get_auv_dreamer_model_options(config: gym_auv.Config) -> dict:
         "hidden_size": 400,
         # Action STD
         "action_init_std": 5.0,
+
+        "use_lidar": config.vessel.use_lidar,
     }
     return model_config
 
