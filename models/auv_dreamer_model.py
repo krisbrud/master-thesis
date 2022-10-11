@@ -108,9 +108,9 @@ class AuvEncoder(nn.Module):
         # else:
         #     self.flattened_size = self.dense_size
 
-        self.nav_hidden_size = 64
+        self.nav_hidden_size = 16
         self.nav_output_size = 32
-        self.hidden_output_size = 1024
+        self.hidden_output_size = 32 # 1024
 
         if self.use_lidar:
             self.lidar_encoder = AuvConvEncoder(shape=lidar_shape)
@@ -225,12 +225,14 @@ class AuvDecoder(nn.Module):
         self.lidar_shape = lidar_shape
         self.use_lidar = use_lidar
 
+        self.dense_hidden_size = 16
+
         if self.use_lidar:
             self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
         else:
             self.lidar_decoder = None
         self.navigation_decoder = nn.Sequential(
-            Linear(self.input_size, 64), nn.ELU(), Linear(64, dense_size)
+            Linear(self.input_size, self.dense_hidden_size), nn.ELU(), Linear(self.dense_hidden_size, dense_size)
         )
 
     def forward(self, x):
@@ -283,9 +285,12 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
         )
+
+        embed_size = 32
         self.dynamics = RSSM(
             self.action_size,
-            32 * self.depth,
+            embed_size,
+            # 32 * self.depth,
             stoch=self.stoch_size,
             deter=self.deter_size,
         )
