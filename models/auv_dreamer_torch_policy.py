@@ -19,6 +19,7 @@ from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.utils.torch_utils import apply_grad_clipping
 from ray.rllib.utils.typing import AgentID, TensorType
 from ray.rllib.utils.annotations import override
+from ray.rllib.utils.numpy import convert_to_numpy
 from ray.rllib.models.action_dist import ActionDistribution
 from ray.rllib.models.modelv2 import ModelV2
 from ray.rllib.policy.torch_policy_v2 import TorchPolicyV2
@@ -157,6 +158,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             "prior_ent": prior_ent,
             "post_ent": post_ent,
         }
+        for key, val in return_dict.items():
+            model.tower_stats[key] = val
+        
         if gif is not None:
             return_dict["log_gif"] = gif
         self.stats_dict = return_dict
@@ -206,7 +210,19 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         return SampleBatch(new_batch)
 
     def stats_fn(self, train_batch):
-        return self.stats_dict
+        return convert_to_numpy(
+            {
+                "model_loss": torch.mean(torch.stack(self.get_tower_stats("model_loss"))),
+                "reward_loss": torch.mean(torch.stack(self.get_tower_stats("reward_loss"))),
+                "image_loss": torch.mean(torch.stack(self.get_tower_stats("image_loss"))),
+                "divergence": torch.mean(torch.stack(self.get_tower_stats("divergence"))),
+                "actor_loss": torch.mean(torch.stack(self.get_tower_stats("actor_loss"))),
+                "critic_loss": torch.mean(torch.stack(self.get_tower_stats("critic_loss"))),
+                "prior_ent": torch.mean(torch.stack(self.get_tower_stats("prior_ent"))),
+                "post_ent": torch.mean(torch.stack(self.get_tower_stats("post_ent"))),
+            }
+        )
+
 
     @override(TorchPolicyV2)
     def optimizer(self):
