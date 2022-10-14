@@ -132,6 +132,7 @@ class AuvDreamer(Algorithm):
                 act_repeat,
             )
         )
+        
         return rollouts
 
     @override(Algorithm)
@@ -151,10 +152,12 @@ class AuvDreamer(Algorithm):
 
         # Dreamer training loop.
         # Run multiple sub-iterations for each training iteration.
+        print("Starting training iteration!")
         for n in range(dreamer_train_iters):
-            print(f"sub-iteration={n}/{dreamer_train_iters}")
+            # print(f"sub-iteration={n}/{dreamer_train_iters}")
             batch = self.local_replay_buffer.sample(batch_size)
             fetches = local_worker.learn_on_batch(batch)
+        print("Training iteration done!")
 
         if fetches:
             # Custom logging.
@@ -172,12 +175,12 @@ def _get_auv_dreamer_model_options() -> dict:
     model_config = {
         "custom_model": AuvDreamerModel,
         # RSSM/PlaNET parameters
-        "deter_size": 200,
-        "stoch_size": 30,
+        "deter_size": 32,  # 200,
+        "stoch_size": 3, # 30,
         # CNN Decoder Encoder
         "depth_size": 32,
         # General Network Parameters
-        "hidden_size": 400,
+        "hidden_size": 32, #400,
         # Action STD
         "action_init_std": 5.0,
     }
