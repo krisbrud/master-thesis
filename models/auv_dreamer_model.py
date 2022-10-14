@@ -109,8 +109,8 @@ class AuvEncoder(nn.Module):
         #     self.flattened_size = self.dense_size
 
         self.nav_hidden_size = 16
-        self.nav_output_size = 32
-        self.hidden_output_size = 32 # 1024
+        self.nav_output_size = 16
+        self.hidden_output_size = 32  # 1024
 
         if self.use_lidar:
             self.lidar_encoder = AuvConvEncoder(shape=lidar_shape)
@@ -123,8 +123,9 @@ class AuvEncoder(nn.Module):
 
         self.navigation_encoder = nn.Sequential(
             Linear(self.dense_size, self.nav_hidden_size),
-            nn.ReLU(),
+            nn.ELU(),
             Linear(self.nav_hidden_size, self.nav_output_size),
+            # Linear(self.dense_size, self.nav_output_size)
         )
         self.joint_head = nn.Sequential(
             Linear(
@@ -225,14 +226,17 @@ class AuvDecoder(nn.Module):
         self.lidar_shape = lidar_shape
         self.use_lidar = use_lidar
 
-        self.dense_hidden_size = 16
+        self.dense_hidden_size = 32
 
         if self.use_lidar:
             self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
         else:
             self.lidar_decoder = None
         self.navigation_decoder = nn.Sequential(
-            Linear(self.input_size, self.dense_hidden_size), nn.ELU(), Linear(self.dense_hidden_size, dense_size)
+            Linear(self.input_size, self.dense_hidden_size),
+            nn.ReLU(),
+            Linear(self.dense_hidden_size, dense_size)
+            # Linear(self.input_size,)
         )
 
     def forward(self, x):
@@ -248,7 +252,7 @@ class AuvDecoder(nn.Module):
             raw_mean = navigation_reconstruction
 
         mean = raw_mean.view((*leading_shape, -1))
-        scale = 5e-3
+        scale = 1e-2  # 5e-3
         output_dist = td.Normal(mean, scale)
         return output_dist
 
@@ -276,11 +280,17 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.encoder = AuvEncoder(
             self.dense_size, self.lidar_shape, use_lidar=self.use_lidar
         )
-        self.decoder = AuvDecoder(
-            self.stoch_size + self.deter_size,
-            self.dense_size,
-            self.lidar_shape,
-            use_lidar=self.use_lidar,
+        # self.decoder = AuvDecoder(
+        #     self.stoch_size + self.deter_size,
+        #     self.dense_size,
+        #     self.lidar_shape,
+        #     use_lidar=self.use_lidar,
+        # )
+        self.decoder = DenseDecoder(
+            input_size=self.stoch_size + self.deter_size,
+            output_size=self.dense_size,
+            layers=2,
+            units=self.hidden_size,
         )
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
