@@ -211,6 +211,14 @@ class AuvConvDecoder(nn.Module):
         # return td.Independent(td.Normal(mean, 1), len(self.shape))
         return mean
 
+# class AuvDenseObservationDecoder(nn.Module):
+#     def __init__(
+#         self,
+#         input_size: int,
+#         hidden_size: int,
+#         observation_size: int,
+#         layers: int,
+#     )
 
 class AuvDecoder(nn.Module):
     def __init__(
@@ -225,8 +233,9 @@ class AuvDecoder(nn.Module):
         self.input_size = input_size
         self.lidar_shape = lidar_shape
         self.use_lidar = use_lidar
+        self.dense_size = dense_size
 
-        self.dense_hidden_size = 32
+        self.dense_hidden_size = 400
 
         if self.use_lidar:
             self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
@@ -234,7 +243,9 @@ class AuvDecoder(nn.Module):
             self.lidar_decoder = None
         self.navigation_decoder = nn.Sequential(
             Linear(self.input_size, self.dense_hidden_size),
-            nn.ReLU(),
+            nn.ELU(),
+            Linear(self.dense_hidden_size, self.dense_hidden_size),
+            nn.ELU(),
             Linear(self.dense_hidden_size, dense_size)
             # Linear(self.input_size,)
         )
@@ -252,8 +263,8 @@ class AuvDecoder(nn.Module):
             raw_mean = navigation_reconstruction
 
         mean = raw_mean.view((*leading_shape, -1))
-        scale = 1e-2  # 5e-3
-        output_dist = td.Normal(mean, scale)
+        scale = 7.5e-3  # 5e-3
+        output_dist = td.Independent(td.Normal(mean, scale), 1)
         return output_dist
 
 
@@ -280,18 +291,18 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.encoder = AuvEncoder(
             self.dense_size, self.lidar_shape, use_lidar=self.use_lidar
         )
-        # self.decoder = AuvDecoder(
-        #     self.stoch_size + self.deter_size,
-        #     self.dense_size,
-        #     self.lidar_shape,
-        #     use_lidar=self.use_lidar,
-        # )
-        self.decoder = DenseDecoder(
-            input_size=self.stoch_size + self.deter_size,
-            output_size=self.dense_size,
-            layers=2,
-            units=self.hidden_size,
+        self.decoder = AuvDecoder(
+            self.stoch_size + self.deter_size,
+            self.dense_size,
+            self.lidar_shape,
+            use_lidar=self.use_lidar,
         )
+        # self.decoder = DenseDecoder(
+        #     input_size=self.stoch_size + self.deter_size,
+        #     output_size=self.dense_size,
+        #     layers=2,
+        #     units=self.hidden_size,
+        # )
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
         )
@@ -305,7 +316,11 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             deter=self.deter_size,
         )
         self.actor = ActionDecoder(
-            self.stoch_size + self.deter_size, self.action_size, 4, self.hidden_size
+            self.stoch_size + self.deter_size,
+            self.action_size,
+            2, #4,
+            self.hidden_size,  
+            act=nn.LeakyReLU
         )
         self.value = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size

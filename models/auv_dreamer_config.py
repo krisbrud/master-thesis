@@ -90,17 +90,17 @@ class AuvDreamerConfig(AlgorithmConfig):
         self.imagine_horizon = 15
         self.free_nats = 3.0
         self.kl_coeff = 1.0
-        self.prefill_timesteps = 5000
+        self.prefill_timesteps = 100000
         self.explore_noise = 0.3
         self.dreamer_model = {
             "custom_model": DreamerModel,
             # RSSM/PlaNET parameters
-            "deter_size": 20, # 200,
-            "stoch_size": 3, # 30,
+            "deter_size": 4, # 200
+            "stoch_size": 1, # 30
             # CNN Decoder Encoder
             "depth_size": 32,
             # General Network Parameters
-            "hidden_size": 400,
+            "hidden_size": 16, # 400 
             # Action STD
             "action_init_std": 5.0,
             
@@ -119,7 +119,7 @@ class AuvDreamerConfig(AlgorithmConfig):
         self.clip_actions = False
 
         # .training()
-        self.gamma = 0.99
+        self.gamma = 0.9 # 99
 
         # .environment()
         self.env_config = {
