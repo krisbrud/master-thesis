@@ -21,7 +21,7 @@ from gym_auv import Config
 # from ray.rllib.algorithms.dreamer.utils import Linear
 # from ray.rllib.models.torch.misc import Reshape
 import gym
-from models.config import get_auv_dreamer_config_dict
+from pipeline.config import get_auv_dreamer_config_dict
 
 from tests.models.model_utils import (
     _get_lidar_shape,

@@ -45,7 +45,7 @@ from ray.rllib.algorithms.dreamer.dreamer import (
     DreamerIteration,
 )
 
-from models.config import get_auv_dreamer_config, get_auv_dreamer_config_dict
+from pipeline.config import get_auv_dreamer_config_dict
 
 
 logger = logging.getLogger(__name__)
@@ -132,7 +132,7 @@ class AuvDreamer(Algorithm):
                 act_repeat,
             )
         )
-        
+
         return rollouts
 
     @override(Algorithm)
@@ -176,11 +176,11 @@ def _get_auv_dreamer_model_options() -> dict:
         "custom_model": AuvDreamerModel,
         # RSSM/PlaNET parameters
         "deter_size": 32,  # 200,
-        "stoch_size": 3, # 30,
+        "stoch_size": 3,  # 30,
         # CNN Decoder Encoder
         "depth_size": 32,
         # General Network Parameters
-        "hidden_size": 32, #400,
+        "hidden_size": 32,  # 400,
         # Action STD
         "action_init_std": 5.0,
     }
@@ -192,7 +192,9 @@ def auv_dreamer_factory(
 ) -> AuvDreamer:
     """Instantiates the Dreamer algorithm with a default
     model suitable for the gym-auv environment"""
-    dreamer_config = get_auv_dreamer_config(env_name=env_name, env_config=env_config)
+    dreamer_config = get_auv_dreamer_config_dict(
+        env_name=env_name, env_config=env_config
+    )
 
     # Instantiate the algorithm
     # dreamer = Dreamer(config=dreamer_config)

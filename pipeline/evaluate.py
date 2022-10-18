@@ -13,7 +13,7 @@ from torch import cuda
 
 from models.auv_dreamer import AuvDreamer
 from models.auv_dreamer_model import AuvDreamerModel
-from models.config import get_auv_dreamer_config_dict
+from pipeline.config import get_auv_dreamer_config_dict
 from pipeline.register_envs import register_gym_auv_scenarios
 
 # def parse_arguments() -> dict:

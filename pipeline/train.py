@@ -7,7 +7,7 @@ from pipeline.register_envs import register_gym_auv_scenarios
 from models.auv_dreamer import (
     AuvDreamer,
 )
-from models.config import get_auv_dreamer_config_dict
+from pipeline.config import get_auv_dreamer_config_dict
 from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
 from torch import cuda
 from ray.rllib.algorithms import Algorithm
@@ -21,24 +21,6 @@ def train_iteration(algo: Algorithm, verbose=True):
         pprint(progress)
 
     # mlflow.log_metric(key="progress", )
-
-
-def get_now_as_string() -> str:
-    """Returns a string of the current time, suitable for directory or file names."""
-    now = datetime.datetime.now()
-    formatted = now.strftime("%Y%m%d-%H%M%S")
-    return formatted
-
-def print_last_reward(progress: dict): 
-    hist_stats = progress.get("hist_stats") 
-    if hist_stats is None:
-        return
-
-    episode_rewards = hist_stats.get("episode_reward")
-    if episode_rewards is None:
-        return
-    
-    print(f"Last episode reward: {episode_rewards[-1]}")
 
 
 
@@ -72,14 +54,14 @@ def main():
     # print("trying to save checkpoint!")uuu
     
     # mlflow.start_run(get_now_as_string())
-    for i in range(n_training_iters):
-        print("training iteration", i)
-        progress = auv_dreamer.train()
-        pprint(progress)
-        # print_last_reward(progress)        
+    # for i in range(n_training_iters):
+    #     print("training iteration", i)
+    #     progress = auv_dreamer.train()
+    #     pprint(progress)
+    #     # print_last_reward(progress)        
 
-        if i % 100 == 0:
-            auv_dreamer.save_checkpoint("results/")
+    #     if i % 100 == 0:
+    #         auv_dreamer.save_checkpoint("results/")
 
     print("evaluating!")
     results = auv_dreamer.evaluate()
