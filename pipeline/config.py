@@ -110,4 +110,3 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
     }
     return dreamer_config
 
-

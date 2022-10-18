@@ -1,27 +1,23 @@
 import argparse
-from pprint import pprint
-from typing import Union
+# from pprint import pprint
+# from typing import Union
+# from ray.tune.logger import DEFAULT_LOGGERS
 from ray import tune
-import datetime
+from ray import air
+
+# import ray
+# import datetime
 from pipeline.register_envs import register_gym_auv_scenarios
 from models.auv_dreamer import (
     AuvDreamer,
 )
-from pipeline.config import get_auv_dreamer_config_dict, get_ray_tune_auv_dreamer_config
-from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
+from pipeline import callbacks
+from pipeline.config import get_ray_tune_auv_dreamer_config
+# from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
 from torch import cuda
-from ray.rllib.algorithms import Algorithm
+# from ray.rllib.algorithms import Algorithm
 
 import gym_auv
-
-# import mlflow
-
-# def train_iteration(algo: Algorithm, verbose=True):
-#     progress = algo.train()
-#     if verbose:
-#         pprint(progress)
-
-#     # mlflow.log_metric(key="progress", )
 
 
 def main():
@@ -57,6 +53,9 @@ def main():
         dreamer_config["num_gpus"] = 1
     # dreamer_config.resources(num_gpus=1)
 
+    # Populated from environment variables
+    wandb_logger_callback = callbacks.get_wandb_logger_callback()  
+
     tuner = tune.Tuner(
         tune.with_resources(
             AuvDreamer,
@@ -67,6 +66,10 @@ def main():
             mode="max",
             # scheduler=
             num_samples=1,
+        ),
+        run_config=air.RunConfig(
+            stop={"training_iteration": 20}, 
+            callbacks=[wandb_logger_callback]
         ),
         param_space=dreamer_config,
     )
