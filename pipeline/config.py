@@ -103,10 +103,11 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         # },
         "gamma": tune.loguniform(0.9, 0.999),
         "explore_noise": tune.loguniform(5e-4, 3e-3),
-        "free_nats": tune.loguniform([1e-4, 3]),
+        "free_nats": tune.loguniform(1e-4, 3),
         # "wandb": {
 
         # }
     }
     return dreamer_config
+
 
