@@ -64,8 +64,8 @@ def get_auv_dreamer_config_dict(env_name: str, gym_auv_config: gym_auv.Config) -
         "env": env_name,
         "batch_size": 50,
         "batch_length": 50,
-        "rollout_fragment_length": 10e3,
-        # "normalize_actions": False,
+        # "rollout_fragment_length": 10e3,
+        "normalize_actions": False,
         "callbacks": GymAuvCallbacks,
         # Use the custom model
         "dreamer_model": _get_auv_dreamer_model_options(gym_auv_config),
@@ -78,7 +78,7 @@ def get_auv_dreamer_config_dict(env_name: str, gym_auv_config: gym_auv.Config) -
         },
         "gamma": 0.99,
         "explore_noise": 1e-3,
-        # "free_nats": 1e-5,
+        "free_nats": 3, # 0.3,
         # "monitor": True,
     }
     # if env_config is not None:

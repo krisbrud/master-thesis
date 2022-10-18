@@ -95,8 +95,8 @@ class AuvDreamerConfig(AlgorithmConfig):
         self.dreamer_model = {
             "custom_model": DreamerModel,
             # RSSM/PlaNET parameters
-            "deter_size": 4, # 200
-            "stoch_size": 1, # 30
+            "deter_size": 200,
+            "stoch_size": 30,
             # CNN Decoder Encoder
             "depth_size": 32,
             # General Network Parameters
