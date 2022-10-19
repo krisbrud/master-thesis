@@ -2,9 +2,10 @@ import argparse
 # from pprint import pprint
 # from typing import Union
 # from ray.tune.logger import DEFAULT_LOGGERS
+import ray
 from ray import tune
 from ray import air
-
+from ray.tune.search.bayesopt import BayesOptSearch
 # import ray
 # import datetime
 from pipeline.register_envs import register_gym_auv_scenarios
@@ -21,6 +22,8 @@ import gym_auv
 
 
 def main():
+    ray.init()
+    print(ray.available_resources())
     # Register environments from gym_auv
     register_gym_auv_scenarios()
 
@@ -55,17 +58,17 @@ def main():
 
     # Populated from environment variables
     wandb_logger_callback = callbacks.get_wandb_logger_callback()  
-
     tuner = tune.Tuner(
         tune.with_resources(
             AuvDreamer,
-            {"cpu": 8, "gpu": 3},
+            {"cpu": 2, "gpu": 1},
         ),
         tune_config=tune.TuneConfig(
-            metric="episode_reward_mean",
-            mode="max",
+            search_alg=BayesOptSearch("mean_episode_reward", mode="max"),
+            # metric="episode_reward_mean",
+            # mode="max",
             # scheduler=
-            num_samples=1,
+            num_samples=10,
         ),
         run_config=air.RunConfig(
             stop={"training_iteration": 20}, 

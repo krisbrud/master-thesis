@@ -91,7 +91,7 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         "normalize_actions": tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
         # Use the custom model
-        "dreamer_model": _get_auv_dreamer_model_options(gym_auv_config),
+        "dreamer_model": model_options,
         # "record_env": True,
         "prefill_timesteps": tune.choice([10e3, 50e3, 100e3]), 
         "evaluation_duration": 5,
