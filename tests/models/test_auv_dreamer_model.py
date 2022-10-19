@@ -131,7 +131,8 @@ def _latents(request, latent_size):
 def test_decoder(latents, latent_size):
     dense_size = _get_dense_size()
     lidar_shape = _get_lidar_shape()
-    decoder = AuvDecoder(latent_size, dense_size, lidar_shape)
+    mock_scale = 1e-3
+    decoder = AuvDecoder(latent_size, dense_size, lidar_shape, mock_scale, mock_scale, use_lidar=True)
     out = decoder(latents)
 
 

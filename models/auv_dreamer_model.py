@@ -211,6 +211,7 @@ class AuvConvDecoder(nn.Module):
         # return td.Independent(td.Normal(mean, 1), len(self.shape))
         return mean
 
+
 # class AuvDenseObservationDecoder(nn.Module):
 #     def __init__(
 #         self,
@@ -220,27 +221,34 @@ class AuvConvDecoder(nn.Module):
 #         layers: int,
 #     )
 
+
 class AuvDecoder(nn.Module):
     def __init__(
         self,
         input_size: int,
         dense_size: int,
         lidar_shape: Tuple[int, int],
+        dense_decoder_scale: float,
+        lidar_decoder_scale: float,
         use_lidar: bool = True,
     ) -> None:
         super().__init__()
 
-        self.input_size = input_size
         self.lidar_shape = lidar_shape
         self.use_lidar = use_lidar
         self.dense_size = dense_size
-
+        self.input_size = input_size
+        self.dense_decoder_scale = dense_decoder_scale
+        self.lidar_decoder_scale = lidar_decoder_scale
         self.dense_hidden_size = 400
 
+        self.output_size = self.dense_size
         if self.use_lidar:
+            self.output_size += math.prod(self.lidar_shape)
             self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
         else:
             self.lidar_decoder = None
+
         self.navigation_decoder = nn.Sequential(
             Linear(self.input_size, self.dense_hidden_size),
             nn.ELU(),
@@ -263,7 +271,10 @@ class AuvDecoder(nn.Module):
             raw_mean = navigation_reconstruction
 
         mean = raw_mean.view((*leading_shape, -1))
-        scale = 7.5e-3  # 5e-3
+        
+        scale = torch.ones(self.output_size)
+        scale[:self.dense_size] = self.dense_decoder_scale
+        scale[self.dense_size:] = self.lidar_decoder_scale
         output_dist = td.Independent(td.Normal(mean, scale), 1)
         return output_dist
 
@@ -285,6 +296,13 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.lidar_shape = model_config["lidar_shape"]
         self.use_lidar = model_config["use_lidar"]
 
+        self.dense_decoder_scale = model_config[
+            "dense_decoder_scale"
+        ]  # Fixed scale parameter of gaussian in dense decoder
+        self.lidar_decoder_scale = model_config[
+            "lidar_decoder_scale"
+        ]  # Same, but for lidar
+
         self.action_size = action_space.shape[0]
 
         # self.encoder = AuvConvEncoder(self.depth)
@@ -295,6 +313,8 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.stoch_size + self.deter_size,
             self.dense_size,
             self.lidar_shape,
+            dense_decoder_scale=self.dense_decoder_scale,
+            lidar_decoder_scale=self.lidar_decoder_scale,
             use_lidar=self.use_lidar,
         )
         # self.decoder = DenseDecoder(
@@ -318,9 +338,9 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.actor = ActionDecoder(
             self.stoch_size + self.deter_size,
             self.action_size,
-            2, #4,
-            self.hidden_size,  
-            act=nn.LeakyReLU
+            2,  # 4,
+            self.hidden_size,
+            act=nn.LeakyReLU,
         )
         self.value = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size

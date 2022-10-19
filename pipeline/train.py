@@ -64,9 +64,9 @@ def main():
             {"cpu": 2, "gpu": 1},
         ),
         tune_config=tune.TuneConfig(
-            search_alg=BayesOptSearch("mean_episode_reward", mode="max"),
-            # metric="episode_reward_mean",
-            # mode="max",
+            # search_alg=BayesOptSearch(metric="episode_reward_mean", mode="max"),
+            metric="episode_reward_mean",
+            mode="max",
             # scheduler=
             num_samples=10,
         ),
