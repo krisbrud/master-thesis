@@ -43,11 +43,28 @@ dreamer_config = get_auv_dreamer_config_dict(
 )
 dreamer_config["prefill_timesteps"] = 0
 
+dreamer_config["dreamer_model"] = {
+            "use_lidar": False,
+            "dense_size": 6,
+            "depth_size": 32,
+            "deter_size": 48,
+            "stoch_size": 24,
+            "hidden_size": 478,
+            "lidar_shape": [
+                1,
+                180
+            ],
+            "custom_model": "",
+            "action_init_std": 5
+}
+
 device = "cpu"
 if cuda.is_available(): # Use GPU if available
     dreamer_config["num_gpus"] = 1
     device = "cuda"
     # dreamer_config.resources(num_gpus=1)
+
+print("using device", device)
 
 def filename_friendly_datetime() -> str:
     return datetime.datetime.now().replace(microsecond=0).isoformat().replace(":","")
@@ -67,11 +84,11 @@ def make_recorder(env, name="testvideo"):
     recorder = video_recorder.VideoRecorder(env=env, base_path=video_path)
     return recorder
 
-recorder = make_recorder(env, "checkpoint-201")
+recorder = make_recorder(env, "some_working_checkpoint")
 straight_ahead_action = np.array([0.9, 0.0])
 
 algo = AuvDreamer(config=dreamer_config)  # .load_checkpoint(args.model_checkpoint)
-algo.load_checkpoint("/home/krisbrud/repos/master-thesis/results/checkpoint-201")
+algo.load_checkpoint("/home/krisbrud/repos/master-thesis/playground/some_working_checkpoint")
 
 
 obs = env.reset()

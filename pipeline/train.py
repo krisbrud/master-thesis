@@ -1,4 +1,5 @@
 import argparse
+
 # from pprint import pprint
 # from typing import Union
 # from ray.tune.logger import DEFAULT_LOGGERS
@@ -6,6 +7,7 @@ import ray
 from ray import tune
 from ray import air
 from ray.tune.search.bayesopt import BayesOptSearch
+
 # import ray
 # import datetime
 from pipeline.register_envs import register_gym_auv_scenarios
@@ -14,8 +16,10 @@ from models.auv_dreamer import (
 )
 from pipeline import callbacks
 from pipeline.config import get_ray_tune_auv_dreamer_config
+
 # from ray.rllib.algorithms.dreamer.dreamer import DreamerConfig
 from torch import cuda
+
 # from ray.rllib.algorithms import Algorithm
 
 import gym_auv
@@ -58,7 +62,7 @@ def main():
     # dreamer_config.resources(num_gpus=1)
 
     # Populated from environment variables
-    wandb_logger_callback = callbacks.get_wandb_logger_callback()  
+    wandb_logger_callback = callbacks.get_wandb_logger_callback()
     tuner = tune.Tuner(
         tune.with_resources(
             AuvDreamer,
@@ -69,11 +73,10 @@ def main():
             metric="episode_reward_mean",
             mode="max",
             # scheduler=
-        num_samples=1, # 100,
-        ),
+            num_samples=100,
+            ),
         run_config=air.RunConfig(
-            stop={"training_iteration": 40}, 
-            callbacks=[wandb_logger_callback]
+            stop={"training_iteration": 40}, callbacks=[wandb_logger_callback]
         ),
         param_space=dreamer_config,
     )
