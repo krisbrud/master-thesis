@@ -124,7 +124,7 @@ class AuvDreamerConfig(AlgorithmConfig):
         # .environment()
         self.env_config = {
             # Repeats action send by policy for frame_skip times in env
-            "frame_skip": 2,
+            "frame_skip": 1,
         }
 
         # __sphinx_doc_end__
