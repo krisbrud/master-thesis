@@ -272,7 +272,7 @@ class AuvDecoder(nn.Module):
 
         mean = raw_mean.view((*leading_shape, -1))
         
-        scale = torch.ones(self.output_size)
+        scale = torch.ones(self.output_size).to(x.device)
         scale[:self.dense_size] = self.dense_decoder_scale
         scale[self.dense_size:] = self.lidar_decoder_scale
         output_dist = td.Independent(td.Normal(mean, scale), 1)

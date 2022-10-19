@@ -66,8 +66,8 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         # "custom_model_config": {
         "dense_size": gym_auv_config.vessel.dense_observation_size,
         "lidar_shape": gym_auv_config.vessel.lidar_shape,
-        "dense_decoder_scale": 1e-3,
-        "lidar_decoder_scale": 1e-3,
+        "dense_decoder_scale": tune.loguniform(2e-2, 1e-3),
+        "lidar_decoder_scale": tune.loguniform(2e-2, 1e-3),
         # },
         # RSSM/PlaNET parameters
         "deter_size": tune.randint(6, 200),

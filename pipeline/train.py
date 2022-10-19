@@ -37,10 +37,11 @@ def main():
     args = parser.parse_args()
     n_training_iters = args.train_iterations
 
-    # env_name = "MovingObstaclesNoRules-v0"
-    env_name = "PathFollowNoObstacles-v0"
+    env_name = "MovingObstaclesNoRules-v0"
+    # env_name = "PathFollowNoObstacles-v0"
 
-    gym_auv_config = gym_auv.Config()
+    # gym_auv_config = gym_auv.Config()
+    gym_auv_config = gym_auv.MOVING_CONFIG
     # auv_dreamer = auv_dreamer_factory(env_name)
     # dreamer_config = get_auv_dreamer_config_dict(
     #     env_name=env_name, gym_auv_config = gym_auv_config
@@ -68,10 +69,10 @@ def main():
             metric="episode_reward_mean",
             mode="max",
             # scheduler=
-            num_samples=10,
+        num_samples=1, # 100,
         ),
         run_config=air.RunConfig(
-            stop={"training_iteration": 20}, 
+            stop={"training_iteration": 40}, 
             callbacks=[wandb_logger_callback]
         ),
         param_space=dreamer_config,
