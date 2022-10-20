@@ -66,16 +66,16 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         # "custom_model_config": {
         "dense_size": gym_auv_config.vessel.dense_observation_size,
         "lidar_shape": gym_auv_config.vessel.lidar_shape,
-        "dense_decoder_scale": tune.loguniform(2e-2, 1e-3),
-        "lidar_decoder_scale": tune.loguniform(2e-2, 1e-3),
+        "dense_decoder_scale": 1,
+        "lidar_decoder_scale": 1,
         # },
         # RSSM/PlaNET parameters
-        "deter_size": tune.randint(6, 200),
-        "stoch_size": tune.randint(1, 30),
+        "deter_size": 200, # tune.randint(6, 200),
+        "stoch_size": 30, # tune.randint(1, 30),
         # CNN Decoder Encoder
         "depth_size": 32,
         # General Network Parameters
-        "hidden_size": tune.randint(6, 500),
+        "hidden_size": 400,  # tune.randint(6, 500),
         # Action STD
         "action_init_std": 5.0,
         "use_lidar": gym_auv_config.vessel.use_lidar,
@@ -87,10 +87,10 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         "env": env_name,
         "batch_size": 50,
         "batch_length": 50,
-        "td_model_lr": tune.loguniform(1e-4, 5e-3),
-        "actor_lr": tune.loguniform(1e-5, 5e-4),
-        "critic_lr": tune.loguniform(1e-5, 5e-4),
-        "grad_clip": tune.randint(50, 200),
+        # "td_model_lr": tune.loguniform(1e-4, 5e-3),
+        # "actor_lr": tune.loguniform(1e-5, 5e-4),
+        # "critic_lr": tune.loguniform(1e-5, 5e-4),
+        "grad_clip": 100, # tune.randint(50, 200),
         # "rollout_fragment_length": 10e3,
         "normalize_actions": tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
@@ -108,7 +108,7 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         # },
         "gamma": tune.loguniform(0.9, 0.999),
         "explore_noise": tune.loguniform(5e-4, 3e-3),
-        "free_nats": tune.loguniform(1e-4, 3),
+        "free_nats": tune.loguniform(1e-4, 5),
         # "wandb": {
 
         # }

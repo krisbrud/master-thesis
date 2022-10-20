@@ -105,8 +105,8 @@ class AuvDreamerConfig(AlgorithmConfig):
             "action_init_std": 5.0,
             
             # gym-auv specific settings
-            "dense_decoder_scale": 1e-3,  # Fixed scale parameter of gaussian in dense decoder 
-            "lidar_decoder_scale": 1e-3,  # Same, but for lidar          
+            "dense_decoder_scale": 1,  # Fixed scale parameter of gaussian in dense decoder 
+            "lidar_decoder_scale": 1,  # Same, but for lidar          
 
             "dense_size": DEFAULT_CONFIG.vessel.dense_observation_size,
             "lidar_shape": DEFAULT_CONFIG.vessel.lidar_shape,
