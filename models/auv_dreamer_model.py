@@ -338,7 +338,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.actor = ActionDecoder(
             self.stoch_size + self.deter_size,
             self.action_size,
-            2,  # 4,
+            4, # 2,  # 4,
             self.hidden_size,
             act=nn.LeakyReLU,
         )
