@@ -97,7 +97,7 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": tune.choice([10e3]), 
+        "prefill_timesteps": 50e3,  # tune.choice([10e3, 50e3, 100e3]) 
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",
