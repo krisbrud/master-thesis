@@ -44,7 +44,7 @@ def get_auv_dreamer_config_dict(env_name: str, gym_auv_config: gym_auv.Config) -
         # Use the custom model
         "dreamer_model": _get_auv_dreamer_model_options(gym_auv_config),
         # "record_env": True,
-        "prefill_timesteps": 10e3, 
+        "prefill_timesteps": 10e3,
         "evaluation_duration": 1,
         "render_env": False,
         "evaluation_config": {
@@ -57,7 +57,9 @@ def get_auv_dreamer_config_dict(env_name: str, gym_auv_config: gym_auv.Config) -
     return dreamer_config
 
 
-def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Config) -> dict:
+def get_ray_tune_auv_dreamer_config(
+    env_name: str, gym_auv_config: gym_auv.Config
+) -> dict:
     # Instantiate the config
     env_config = {"config": gym_auv_config}
 
@@ -70,8 +72,8 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         "lidar_decoder_scale": 1,
         # },
         # RSSM/PlaNET parameters
-        "deter_size": 200, # tune.randint(6, 200),
-        "stoch_size": 30, # tune.randint(1, 30),
+        "deter_size": 200,  # tune.randint(6, 200),
+        "stoch_size": 30,  # tune.randint(1, 30),
         # CNN Decoder Encoder
         "depth_size": 32,
         # General Network Parameters
@@ -87,17 +89,17 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         "env": env_name,
         "batch_size": 50,
         "batch_length": 50,
-        # "td_model_lr": tune.loguniform(1e-4, 5e-3),
-        # "actor_lr": tune.loguniform(1e-5, 5e-4),
-        # "critic_lr": tune.loguniform(1e-5, 5e-4),
-        "grad_clip": 100, # tune.randint(50, 200),
+        "td_model_lr": 1e-5,  #  tune.loguniform(1e-4, 5e-3),
+        "actor_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
+        "critic_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
+        "grad_clip": 100,  # tune.randint(50, 200),
         # "rollout_fragment_length": 10e3,
-        "normalize_actions": False, # tune.choice([True, False]),
+        "normalize_actions": False,  # tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": 50e3,  # tune.choice([10e3, 50e3, 100e3]) 
+        "prefill_timesteps": 50e3,  # tune.choice([10e3, 50e3, 100e3])
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",
@@ -106,12 +108,11 @@ def get_ray_tune_auv_dreamer_config(env_name: str, gym_auv_config: gym_auv.Confi
         # "evaluation_config": {
         #     "render_env": True,
         # },
-        "gamma": 0.99, # tune.loguniform(0.9, 0.999),
-        "explore_noise": 3e-3, # tune.loguniform(5e-4, 3e-3),
-        "free_nats": 3, # tune.loguniform(1e-4, 5),
+        "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
+        "explore_noise": 3e-3,  # tune.loguniform(5e-4, 3e-3),
+        "free_nats": 3,  # tune.loguniform(1e-4, 5),
+        "keep_per_episode_custom_metrics": True,
         # "wandb": {
-
         # }
     }
     return dreamer_config
-
