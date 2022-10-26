@@ -83,6 +83,8 @@ def get_ray_tune_auv_dreamer_config(
         # Action STD
         "action_init_std": 5.0,
         "use_lidar": gym_auv_config.sensor.use_lidar,
+        "use_occupancy": True,
+        "occupancy_grid_shape": (2, 64, 64),
     }
 
     dreamer_config = {
@@ -91,7 +93,7 @@ def get_ray_tune_auv_dreamer_config(
         "env": env_name,
         "batch_size": 50,
         "batch_length": 50,
-        "td_model_lr": 1e-5,  #  tune.loguniform(1e-4, 5e-3),
+        "td_model_lr": 8e-5,  #  tune.loguniform(1e-4, 5e-3),
         "actor_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
         "critic_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
@@ -101,7 +103,7 @@ def get_ray_tune_auv_dreamer_config(
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": 50e3,  # tune.choice([10e3, 50e3, 100e3])
+        "prefill_timesteps": 2e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",

@@ -73,10 +73,10 @@ def main():
             metric="episode_reward_mean",
             mode="max",
             # scheduler=
-            num_samples=10,
+            num_samples=1,
             ),
         run_config=air.RunConfig(
-            stop={"training_iteration": 1000}, callbacks=[wandb_logger_callback]
+            stop={"training_iteration": 10}, callbacks=[wandb_logger_callback]
         ),
         param_space=dreamer_config,
     )
