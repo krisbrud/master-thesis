@@ -21,7 +21,12 @@ from ray.rllib.algorithms.dreamer.utils import (
     GRUCell,
     TanhBijector,
 )
-from ray.rllib.algorithms.dreamer.dreamer_model import DenseDecoder, RSSM, ActionDecoder
+from ray.rllib.algorithms.dreamer.dreamer_model import (
+    DenseDecoder,
+    RSSM,
+    ActionDecoder,
+    ConvEncoder,
+)
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.models.modelv2 import restore_original_dimensions
 
@@ -31,7 +36,7 @@ from models.unflatten_obs import unflatten_obs
 ActFunc = Any
 
 # Encoder, part of PlaNET
-class AuvConvEncoder(nn.Module):
+class AuvConvEncoder1D(nn.Module):
     """Standard Convolutional Encoder for Dreamer. This encoder is used
     to encode images frm an enviornment into a latent state for the
     RSSM model in PlaNET.
@@ -92,17 +97,27 @@ class AuvConvEncoder(nn.Module):
         return x
 
 
+class AuvConvEncoder2D(nn.Module):
+    pass
+
+
 class AuvEncoder(nn.Module):
     """Joint encoder for proprioceptive and lidar observations in gym_auv"""
 
     def __init__(
-        self, dense_size: int, lidar_shape: Tuple[int, int], use_lidar: bool = True
+        self,
+        dense_size: int,
+        lidar_shape: Tuple[int, int],
+        occupancy_grid_shape: Tuple[int, int, int],
+        use_lidar: bool = True,
+        use_occupancy_grid: bool = False,
     ):
         super().__init__()
         self.lidar_shape = lidar_shape
         self.dense_size = dense_size
         self.use_lidar = use_lidar
-
+        self.use_occupancy_grid = use_occupancy_grid
+        self.occupancy_grid_shape = occupancy_grid_shape
         # if self.use_lidar:
         #     self.flattened_size = self.dense_size + lidar_shape[0] * lidar_shape[1]
         # else:
@@ -113,10 +128,13 @@ class AuvEncoder(nn.Module):
         self.hidden_output_size = 32  # 1024
 
         if self.use_lidar:
-            self.lidar_encoder = AuvConvEncoder(shape=lidar_shape)
-            self.lidar_encoded_size = (
-                256 * 9
-            )  # TODO: Refactor so this is given as argument
+            if self.use_occupancy_grid:
+                self.lidar_encoder = ConvEncoder(shape=self.occupancy_grid_shape)
+            else:
+                self.lidar_encoder = AuvConvEncoder1D(shape=lidar_shape)
+                self.lidar_encoded_size = (
+                    256 * 9
+                )  # TODO: Refactor so this is given as argument
         else:
             self.lidar_encoder = None
             self.lidar_encoded_size = 0
@@ -135,9 +153,9 @@ class AuvEncoder(nn.Module):
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
         if self.use_lidar:
-            nav_obs, lidar_obs = unflatten_obs(
-                x, lidar_shape=self.lidar_shape, dense_size=self.dense_size
-            )
+            # nav_obs, lidar_obs = unflatten_obs(
+            #     x, lidar_shape=self.lidar_shape, dense_size=self.dense_size
+            # )
             nav_latents = self.navigation_encoder(nav_obs)
 
             lidar_latents = self.lidar_encoder(lidar_obs)
@@ -271,10 +289,10 @@ class AuvDecoder(nn.Module):
             raw_mean = navigation_reconstruction
 
         mean = raw_mean.view((*leading_shape, -1))
-        
+
         scale = torch.ones(self.output_size).to(x.device)
-        scale[:self.dense_size] = self.dense_decoder_scale
-        scale[self.dense_size:] = self.lidar_decoder_scale
+        scale[: self.dense_size] = self.dense_decoder_scale
+        scale[self.dense_size :] = self.lidar_decoder_scale
         output_dist = td.Independent(td.Normal(mean, scale), 1)
         return output_dist
 
@@ -295,6 +313,8 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.dense_size = model_config["dense_size"]
         self.lidar_shape = model_config["lidar_shape"]
         self.use_lidar = model_config["use_lidar"]
+        self.use_occupancy_grid = model_config["use_occupancy"]
+        self.occupancy_grid_shape = model_config["occupancy_grid_shape"]
 
         self.dense_decoder_scale = model_config[
             "dense_decoder_scale"
@@ -307,7 +327,11 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
 
         # self.encoder = AuvConvEncoder(self.depth)
         self.encoder = AuvEncoder(
-            self.dense_size, self.lidar_shape, use_lidar=self.use_lidar
+            self.dense_size,
+            self.lidar_shape,
+            self.occupancy_grid_shape,
+            use_lidar=self.use_lidar,
+            use_occupancy_grid=self.use_occupancy_grid,
         )
         self.decoder = AuvDecoder(
             self.stoch_size + self.deter_size,
@@ -338,7 +362,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.actor = ActionDecoder(
             self.stoch_size + self.deter_size,
             self.action_size,
-            4, # 2,  # 4,
+            4,  # 2,  # 4,
             self.hidden_size,
             act=nn.LeakyReLU,
         )
@@ -357,6 +381,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         """Returns the action. Runs through the encoder, recurrent model,
         and policy to obtain action.
         """
+        obs_dict = restore_original_dimensions(obs=obs, obs_space=self.obs_space, tensorlib="torch")
         if state is None:
             self.state = self.get_initial_state(batch_size=obs.shape[0])
         else:
@@ -366,7 +391,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         action = self.state[4]
 
         # obs = restore_original_dimensions(obs, self.obs_space, "torch")
-        embed = self.encoder(obs)
+        embed = self.encoder(obs_dict)
         post, _ = self.dynamics.obs_step(post, action, embed)
         feat = self.dynamics.get_feature(post)
 

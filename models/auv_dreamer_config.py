@@ -92,6 +92,7 @@ class AuvDreamerConfig(AlgorithmConfig):
         self.kl_coeff = 1.0
         self.prefill_timesteps = 100000
         self.explore_noise = 0.3
+
         self.dreamer_model = {
             "custom_model": DreamerModel,
             # RSSM/PlaNET parameters
@@ -108,9 +109,11 @@ class AuvDreamerConfig(AlgorithmConfig):
             "dense_decoder_scale": 1,  # Fixed scale parameter of gaussian in dense decoder 
             "lidar_decoder_scale": 1,  # Same, but for lidar          
 
-            "dense_size": DEFAULT_CONFIG.vessel.dense_observation_size,
-            "lidar_shape": DEFAULT_CONFIG.vessel.lidar_shape,
-            "use_lidar": DEFAULT_CONFIG.vessel.use_lidar
+            "dense_size": DEFAULT_CONFIG.sensor.dense_observation_size,
+            "lidar_shape": DEFAULT_CONFIG.sensor.lidar_shape,
+            "use_lidar": DEFAULT_CONFIG.sensor.use_lidar,
+            "use_occupancy": DEFAULT_CONFIG.sensor.use_occupancy_grid,
+            "occupancy_grid_shape": (2, DEFAULT_CONFIG.sensor.occupancy_grid_size, DEFAULT_CONFIG.sensor.occupancy_grid_size),
         }
 
         # Override some of AlgorithmConfig's default values with PPO-specific values.
