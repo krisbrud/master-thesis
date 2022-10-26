@@ -13,6 +13,7 @@ from models.auv_dreamer_model import (
 )
 
 import gym_auv
+from gym_auv.envs.testscenario import TestScenario1
 from gym_auv import Config
 
 # from ray.rllib.algorithms.dreamer import DreamerConfig
@@ -75,7 +76,9 @@ def occupancy_grid_shape() -> Tuple[int,int,int]:
 def test_encoder(batch_size, occupancy_grid_shape):
     lidar_shape = _get_lidar_shape()
     dense_size = _get_dense_size()
-    encoder = AuvEncoder(dense_size, lidar_shape, occupancy_grid_shape)
+    mock_env = TestScenario1(gym_auv.DEFAULT_CONFIG)
+    obs_space = mock_env.observation_space
+    encoder = AuvEncoder(dense_size, lidar_shape, occupancy_grid_shape, obs_space=obs_space)
 
     # input_size = dense_size + math.prod(lidar_shape)
     # mock_input = _mock_input(batch_size=batch_size, input_size=input_size)

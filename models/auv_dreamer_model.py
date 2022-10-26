@@ -3,7 +3,8 @@
 
 # import torch
 import math
-from turtle import forward
+# from turtle import forward
+import gym
 from typing import Any, Dict, Tuple, List, Union
 import torch
 from torch import nn
@@ -106,6 +107,7 @@ class AuvEncoder(nn.Module):
         dense_size: int,
         lidar_shape: Tuple[int, int],
         occupancy_grid_shape: Tuple[int, int, int],
+        obs_space: gym.spaces.Space,
         use_lidar: bool = True,
         use_occupancy_grid: bool = False,
     ):
@@ -296,7 +298,13 @@ class AuvDecoder(nn.Module):
 
         if self.use_lidar:
             lidar_reconstruction = self.lidar_decoder(x)
+            if isinstance(lidar_reconstruction, torch.distributions.Independent):
+                # Take care of case where we use the ConvEncoder from RLlib as the occupancy decoder,
+                # s.t. the mean of lidar_reconstruction needs to be extracted. 
+                lidar_reconstruction = lidar_reconstruction.mean
+            
             flat_lidar_reconstruction = lidar_reconstruction.view((*leading_shape, -1))
+            
             raw_mean = torch.cat(
                 (navigation_reconstruction, flat_lidar_reconstruction), dim=-1
             )
@@ -345,6 +353,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.dense_size,
             self.lidar_shape,
             self.occupancy_grid_shape,
+            obs_space=self.obs_space,
             use_lidar=self.use_lidar,
             use_occupancy_grid=self.use_occupancy_grid,
         )
