@@ -4,7 +4,7 @@ import torch
 from ray.rllib.algorithms.dreamer.dreamer_model import ConvEncoder
 
 
-from models.auv_dreamer_model import AuvConvDecoder, AuvConvEncoder
+from models.auv_dreamer_model import AuvConvDecoder1d, AuvConvEncoder1D
 from gym_auv import Config
 from ray.rllib.algorithms.dreamer import DreamerConfig
 from ray.rllib.algorithms.dreamer.dreamer_model import ConvEncoder
@@ -39,7 +39,7 @@ def _print_model_dims(x, layers: List[torch.nn.Module]):
 def _get_lidar_shape() -> Tuple[int, int]:
     # Returns a tuple of the shape of the lidar measurements of a single timestep
     default_config = Config()
-    lidar_shape = (3, default_config.vessel.n_sensors)
+    lidar_shape = (1, default_config.sensor.n_lidar_rays)
 
     return lidar_shape
 
