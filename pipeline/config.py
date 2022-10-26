@@ -10,8 +10,8 @@ def _get_auv_dreamer_model_options(config: gym_auv.Config) -> dict:
     model_config = {
         "custom_model": AuvDreamerModel,
         # "custom_model_config": {
-        "dense_size": config.vessel.dense_observation_size,
-        "lidar_shape": config.vessel.lidar_shape,
+        "dense_size": config.sensor.dense_observation_size,
+        "lidar_shape": config.sensor.lidar_shape,
         "dense_decoder_scale": 1e-3,
         "lidar_decoder_scale": 1e-3,
         # },
@@ -24,7 +24,9 @@ def _get_auv_dreamer_model_options(config: gym_auv.Config) -> dict:
         "hidden_size": 400,
         # Action STD
         "action_init_std": 5.0,
-        "use_lidar": config.vessel.use_lidar,
+        "use_lidar": config.sensor.use_lidar,
+        "use_occupancy": True,
+        "occupancy_grid_shape": (2, 64, 64)
     }
     return model_config
 
@@ -66,8 +68,8 @@ def get_ray_tune_auv_dreamer_config(
     model_options = {
         "custom_model": AuvDreamerModel,
         # "custom_model_config": {
-        "dense_size": gym_auv_config.vessel.dense_observation_size,
-        "lidar_shape": gym_auv_config.vessel.lidar_shape,
+        "dense_size": gym_auv_config.sensor.dense_observation_size,
+        "lidar_shape": gym_auv_config.sensor.lidar_shape,
         "dense_decoder_scale": 1,
         "lidar_decoder_scale": 1,
         # },
@@ -80,7 +82,7 @@ def get_ray_tune_auv_dreamer_config(
         "hidden_size": 400,  # tune.randint(6, 500),
         # Action STD
         "action_init_std": 5.0,
-        "use_lidar": gym_auv_config.vessel.use_lidar,
+        "use_lidar": gym_auv_config.sensor.use_lidar,
     }
 
     dreamer_config = {
