@@ -61,7 +61,6 @@ def main():
         dreamer_config["num_gpus"] = 1
     # dreamer_config.resources(num_gpus=1)
 
-    dreamer_config["prefill_timesteps"] = 2e3
 
     # Populated from environment variables
     wandb_logger_callback = callbacks.get_wandb_logger_callback()
