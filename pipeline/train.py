@@ -35,7 +35,7 @@ def main():
     parser.add_argument(
         "--train-iterations",
         help="How many training iterations (rollouts + learning) to perform during the course of training.",
-        default=1000,
+        default=1,
     )
     # parser.add_argument("--device", type=Union[str, None], default=None)
     args = parser.parse_args()
@@ -61,6 +61,8 @@ def main():
         dreamer_config["num_gpus"] = 1
     # dreamer_config.resources(num_gpus=1)
 
+    dreamer_config["prefill_timesteps"] = 2e3
+
     # Populated from environment variables
     wandb_logger_callback = callbacks.get_wandb_logger_callback()
     tuner = tune.Tuner(
@@ -69,14 +71,12 @@ def main():
             {"cpu": 2, "gpu": 1},
         ),
         tune_config=tune.TuneConfig(
-            # search_alg=BayesOptSearch(metric="episode_reward_mean", mode="max"),
             metric="episode_reward_mean",
             mode="max",
-            # scheduler=
-            num_samples=1,
-            ),
+            num_samples=6,
+        ),
         run_config=air.RunConfig(
-            stop={"training_iteration": 10}, callbacks=[wandb_logger_callback]
+            stop={"training_iteration": 1000}, callbacks=[wandb_logger_callback]
         ),
         param_space=dreamer_config,
     )

@@ -114,7 +114,7 @@ def get_ray_tune_auv_dreamer_config(
         #     "render_env": True,
         # },
         "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
-        "explore_noise": tune.loguniform(1e-3, 1e-2),
+        "explore_noise": tune.loguniform(1e-3, 5e-2),
         "free_nats": 3,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
