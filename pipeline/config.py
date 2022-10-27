@@ -91,6 +91,7 @@ def get_ray_tune_auv_dreamer_config(
         "framework": "torch",
         # Use the specified environment and environment config
         "env": env_name,
+        "env_config": env_config,
         "batch_size": 50,
         "batch_length": 50,
         "td_model_lr": 8e-5,  #  tune.loguniform(1e-4, 5e-3),
