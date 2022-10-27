@@ -103,7 +103,7 @@ def get_ray_tune_auv_dreamer_config(
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": 2e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
+        "prefill_timesteps": 50e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",
@@ -113,9 +113,9 @@ def get_ray_tune_auv_dreamer_config(
         #     "render_env": True,
         # },
         "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
-        "explore_noise": 3e-3,  # tune.loguniform(5e-4, 3e-3),
+        "explore_noise": tune.loguniform(1e-3, 1e-2),
         "free_nats": 3,  # tune.loguniform(1e-4, 5),
-        "keep_per_episode_custom_metrics": True,
+        "keep_per_episode_custom_metrics": False,
         # "wandb": {
         # }
     }
