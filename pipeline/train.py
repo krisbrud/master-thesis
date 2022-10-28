@@ -16,7 +16,6 @@ from models.auv_dreamer import (
 )
 
 
-
 def main():
     ray.init()
     print(ray.available_resources())
@@ -50,7 +49,7 @@ def main():
 
     # Populated from environment variables
     wandb_logger_callback = callbacks.get_wandb_logger_callback()
-    
+
     tuner = tune.Tuner(
         tune.with_resources(
             AuvDreamer,
@@ -62,13 +61,13 @@ def main():
             num_samples=6,
         ),
         run_config=air.RunConfig(
-            stop={"training_iteration": n_training_iters}, callbacks=[wandb_logger_callback]
+            stop={"training_iteration": n_training_iters},
+            callbacks=[wandb_logger_callback],
         ),
         param_space=dreamer_config,
     )
     results = tuner.fit()
     print(results)
-
 
 
 if __name__ == "__main__":
