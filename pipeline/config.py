@@ -99,7 +99,7 @@ def get_ray_tune_auv_dreamer_config(
         "critic_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
         # "rollout_fragment_length": 10e3,
-        "normalize_actions": tune.choice([True, False]),
+        # "normalize_actions": tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
         # Use the custom model
         "dreamer_model": model_options,
