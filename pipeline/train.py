@@ -27,11 +27,13 @@ def main():
         "--train-iterations",
         help="How many training iterations (rollouts + learning) to perform during the course of training.",
         default=100,
+        type=int,
     )
     parser.add_argument(
         "--n-experiments",
         help="How many experiments to run in total. May typically run as many experiments as GPUs that are available",
         default=2,
+        type=int,
     )
     args = parser.parse_args()
     n_training_iters = args.train_iterations
@@ -67,7 +69,8 @@ def main():
         param_space=dreamer_config,
     )
     results = tuner.fit()
-    print(results)
+    print(results
+        modified:   playground/try_hierarchical_detector.py)
 
 
 if __name__ == "__main__":
