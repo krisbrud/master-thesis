@@ -70,7 +70,7 @@ def get_ray_tune_auv_dreamer_config(
         # "custom_model_config": {
         "dense_size": gym_auv_config.sensor.dense_observation_size,
         "lidar_shape": gym_auv_config.sensor.lidar_shape,
-        "dense_decoder_scale": 1,
+        "dense_decoder_scale": 0.3, # I.e. higher weighting of dense state
         "lidar_decoder_scale": 1,
         # },
         # RSSM/PlaNET parameters
@@ -99,12 +99,12 @@ def get_ray_tune_auv_dreamer_config(
         "critic_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
         # "rollout_fragment_length": 10e3,
-        "normalize_actions": False,  # tune.choice([True, False]),
+        "normalize_actions": tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": 50e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
+        "prefill_timesteps": 25e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",
@@ -114,7 +114,7 @@ def get_ray_tune_auv_dreamer_config(
         #     "render_env": True,
         # },
         "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
-        "explore_noise": tune.loguniform(1e-3, 5e-2),
+        "explore_noise": 0.03, # tune.loguniform(1e-3, 5e-2),
         "free_nats": 3,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
