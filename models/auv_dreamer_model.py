@@ -122,7 +122,7 @@ class AuvEncoder(nn.Module):
         # else:
         #     self.flattened_size = self.dense_size
 
-        self.nav_hidden_size = 16
+        self.nav_hidden_size = 64
         self.nav_output_size = 16
         self.hidden_output_size = 1024
 
@@ -139,15 +139,15 @@ class AuvEncoder(nn.Module):
             self.lidar_encoder = None
             self.lidar_encoded_size = 0
 
-        # self.navigation_encoder = nn.Sequential(
-        #     Linear(self.dense_size, self.nav_hidden_size),
-        #     nn.ELU(),
-        #     Linear(self.nav_hidden_size, self.nav_output_size),
-        #     # Linear(self.dense_size, self.nav_output_size)
-        # )
+        self.navigation_encoder = nn.Sequential(
+            Linear(self.dense_size, self.nav_hidden_size),
+            nn.ELU(),
+            Linear(self.nav_hidden_size, self.nav_output_size),
+            # Linear(self.dense_size, self.nav_output_size)
+        )
         self.joint_head = nn.Sequential(
             Linear(
-                self.dense_size + self.lidar_encoded_size, self.hidden_output_size
+                self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
             )
         )
 
@@ -162,13 +162,13 @@ class AuvEncoder(nn.Module):
             else:
                 lidar_obs = x["lidar"]
 
-            # nav_latents = self.navigation_encoder(nav_obs)
+            nav_latents = self.navigation_encoder(nav_obs)
 
             lidar_latents = self.lidar_encoder(lidar_obs)
-            latents = torch.cat((nav_obs, lidar_latents), dim=-1)
+            latents = torch.cat((nav_latents, lidar_latents), dim=-1)
         else:
-            # latents = self.navigation_encoder(x)
-            latents = nav_obs
+            latents = self.navigation_encoder(x)
+            # latents = nav_obs
 
         out = self.joint_head(latents)
 
@@ -236,15 +236,6 @@ class AuvConvDecoder1d(nn.Module):
         # return td.Independent(td.Normal(mean, 1), len(self.shape))
         return mean
 
-
-# class AuvDenseObservationDecoder(nn.Module):
-#     def __init__(
-#         self,
-#         input_size: int,
-#         hidden_size: int,
-#         observation_size: int,
-#         layers: int,
-#     )
 
 
 class AuvDecoder(nn.Module):
@@ -349,7 +340,6 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
 
         self.action_size = action_space.shape[0]
 
-        # self.encoder = AuvConvEncoder(self.depth)
         self.encoder = AuvEncoder(
             self.dense_size,
             self.lidar_shape,
@@ -368,20 +358,13 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             use_lidar=self.use_lidar,
             use_occupancy_grid=self.use_occupancy_grid,
         )
-        # self.decoder = DenseDecoder(
-        #     input_size=self.stoch_size + self.deter_size,
-        #     output_size=self.dense_size,
-        #     layers=2,
-        #     units=self.hidden_size,
-        # )
+        
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
         )
 
-        # embed_size = 32
         self.dynamics = RSSM(
             self.action_size,
-            # embed_size,
             32 * self.depth,
             stoch=self.stoch_size,
             deter=self.deter_size,
@@ -389,7 +372,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.actor = ActionDecoder(
             self.stoch_size + self.deter_size,
             self.action_size,
-            4,  # 2,  # 4,
+            4,
             self.hidden_size,
             act=nn.ReLU,
         )
@@ -419,7 +402,6 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         post = self.state[:4]
         action = self.state[4]
 
-        # obs = restore_original_dimensions(obs, self.obs_space, "torch")
         embed = self.encoder(obs_dict)
         post, _ = self.dynamics.obs_step(post, action, embed)
         feat = self.dynamics.get_feature(post)
