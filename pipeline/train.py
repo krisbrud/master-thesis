@@ -69,8 +69,7 @@ def main():
         param_space=dreamer_config,
     )
     results = tuner.fit()
-    print(results
-        modified:   playground/try_hierarchical_detector.py)
+    print(results)
 
 
 if __name__ == "__main__":
