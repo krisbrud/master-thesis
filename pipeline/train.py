@@ -58,7 +58,7 @@ def main():
         tune_config=tune.TuneConfig(
             metric="episode_reward_mean",
             mode="max",
-            num_samples=6,
+            num_samples=args.n_experiments,
         ),
         run_config=air.RunConfig(
             stop={"training_iteration": n_training_iters},
