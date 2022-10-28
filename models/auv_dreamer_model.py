@@ -124,7 +124,7 @@ class AuvEncoder(nn.Module):
 
         self.nav_hidden_size = 16
         self.nav_output_size = 16
-        self.hidden_output_size = 32  # 1024
+        self.hidden_output_size = 1024
 
         if self.use_lidar:
             if self.use_occupancy_grid:
@@ -378,11 +378,11 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
         )
 
-        embed_size = 32
+        # embed_size = 32
         self.dynamics = RSSM(
             self.action_size,
-            embed_size,
-            # 32 * self.depth,
+            # embed_size,
+            32 * self.depth,
             stoch=self.stoch_size,
             deter=self.deter_size,
         )
