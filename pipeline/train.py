@@ -35,7 +35,12 @@ def main():
     parser.add_argument(
         "--train-iterations",
         help="How many training iterations (rollouts + learning) to perform during the course of training.",
-        default=1,
+        default=100,
+    )
+    parser.add_argument(
+        "--n-experiments",
+        help="How many experiments to run in total. May typically run as many experiments as GPUs that are available",
+        default=2,
     )
     # parser.add_argument("--device", type=Union[str, None], default=None)
     args = parser.parse_args()
@@ -75,7 +80,7 @@ def main():
             num_samples=6,
         ),
         run_config=air.RunConfig(
-            stop={"training_iteration": 1000}, callbacks=[wandb_logger_callback]
+            stop={"training_iteration": n_training_iters}, callbacks=[wandb_logger_callback]
         ),
         param_space=dreamer_config,
     )
