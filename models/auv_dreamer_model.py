@@ -390,7 +390,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.action_size,
             4,  # 2,  # 4,
             self.hidden_size,
-            act=nn.LeakyReLU,
+            act=nn.ReLU,
         )
         self.value = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
