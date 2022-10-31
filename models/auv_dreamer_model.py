@@ -374,7 +374,8 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.action_size,
             4,
             self.hidden_size,
-            act=nn.ReLU,
+            mean_scale=2.0, # Default: 5
+            # act=nn.ReLU,
         )
         self.value = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
