@@ -32,8 +32,14 @@ def main():
     parser.add_argument(
         "--n-experiments",
         help="How many experiments to run in total. May typically run as many experiments as GPUs that are available",
-        default=2,
+        default=1, # 2,
         type=int,
+    )
+    parser.add_argument(
+        "--use-wandb",
+        help="Whether to use Weights & Biases (wandb) for tracking the experiment",
+        default=True,
+        type=bool,
     )
     args = parser.parse_args()
     n_training_iters = args.train_iterations
@@ -50,12 +56,15 @@ def main():
         dreamer_config["num_gpus"] = 1
 
     # Populated from environment variables
-    wandb_logger_callback = callbacks.get_wandb_logger_callback()
+    callback_list = []
+    
+    if args.use_wandb:
+        callback_list.append(callbacks.get_wandb_logger_callback())
 
     tuner = tune.Tuner(
         tune.with_resources(
             AuvDreamer,
-            {"cpu": 2, "gpu": 1},
+            {"cpu": 8, "gpu": 1},
         ),
         tune_config=tune.TuneConfig(
             metric="episode_reward_mean",
@@ -64,7 +73,7 @@ def main():
         ),
         run_config=air.RunConfig(
             stop={"training_iteration": n_training_iters},
-            callbacks=[wandb_logger_callback],
+            callbacks=callback_list,
         ),
         param_space=dreamer_config,
     )
