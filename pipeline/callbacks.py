@@ -28,6 +28,14 @@ class GymAuvCallbacks(DefaultCallbacks):
         # Make a metric of the progress along the path
         path_progress = worker.env.env.progress
         episode.custom_metrics["path_progress"] = path_progress
+        
+        # Make a metric of the mean and std of actions
+        mean_actions = worker.env.env.episode_action_mean
+        mean_episode_throttle = mean_actions[0]
+        mean_episode_rudder = mean_actions[1]
+        episode.custom_metrics["mean_throttle"] = mean_episode_throttle
+        episode.custom_metrics["mean_episode_rudder"] = mean_episode_rudder
+
 
 def get_wandb_logger_callback():
     # These to be set as environment variable, for instance in .profile
