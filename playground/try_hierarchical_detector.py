@@ -1,3 +1,4 @@
+# %%
 from turtle import position
 import numpy as np
 from matplotlib import pyplot as plt
@@ -32,7 +33,7 @@ def plot_situation(vessel: Vessel, obstacle: BaseObstacle):
     sensor_angles_ned = vessel._sensor_angles + vessel.heading
 
     heading = vessel.heading
-    sensor_range = vessel.config.vessel.sensor_range
+    sensor_range = vessel.config.sensor.range
     sensor_ray_ends = (
         np.array([np.cos(sensor_angles_ned), np.sin(sensor_angles_ned)]).T
         * sensor_range
@@ -49,7 +50,7 @@ def plot_situation(vessel: Vessel, obstacle: BaseObstacle):
         shapely.geometry.Point(*vessel.position),
         vessel.heading,
         vessel._d_sensor_angle,
-        n_rays=vessel.config.vessel.n_sensors,
+        n_rays=vessel.config.sensor.n_lidar_rays,
     )
 
     n_obstacles_per_ray = np.array([len(obsts) for obsts in obstacles_per_ray])
@@ -75,3 +76,5 @@ vessel = make_vessel()
 obstacle = make_obstacle()
 
 plot_situation(vessel, obstacle)
+
+# %%
