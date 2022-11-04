@@ -35,7 +35,12 @@ class GymAuvCallbacks(DefaultCallbacks):
         mean_episode_rudder = mean_actions[1]
         episode.custom_metrics["mean_throttle"] = mean_episode_throttle
         episode.custom_metrics["mean_episode_rudder"] = mean_episode_rudder
-
+        
+        std_actions = worker.env.env.episode_action_std
+        std_episode_throttle = std_actions[0]
+        std_episode_rudder = std_actions[1]
+        episode.custom_metrics["std_throttle"] = std_episode_throttle
+        episode.custom_metrics["std_episode_rudder"] = std_episode_rudder
 
 def get_wandb_logger_callback():
     # These to be set as environment variable, for instance in .profile
