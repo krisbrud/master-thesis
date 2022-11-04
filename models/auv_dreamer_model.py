@@ -145,9 +145,13 @@ class AuvEncoder(nn.Module):
             Linear(self.nav_hidden_size, self.nav_output_size),
             # Linear(self.dense_size, self.nav_output_size)
         )
+        lidar_flat_size = math.prod(self.lidar_shape)
         self.joint_head = nn.Sequential(
+            # Linear(
+            #     self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
+            # )
             Linear(
-                self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
+                self.dense_size + lidar_flat_size, self.hidden_output_size 
             )
         )
 
@@ -162,10 +166,12 @@ class AuvEncoder(nn.Module):
             else:
                 lidar_obs = x["lidar"]
 
-            nav_latents = self.navigation_encoder(nav_obs)
+            # nav_latents = self.navigation_encoder(nav_obs)
 
-            lidar_latents = self.lidar_encoder(lidar_obs)
-            latents = torch.cat((nav_latents, lidar_latents), dim=-1)
+            # lidar_latents = self.lidar_encoder(lidar_obs)
+            # latents = torch.cat((nav_latents, lidar_latents), dim=-1)
+            latents = torch.cat((nav_obs, lidar_obs.flatten()))
+            # return raw_outputs
         else:
             latents = self.navigation_encoder(x)
             # latents = nav_obs
