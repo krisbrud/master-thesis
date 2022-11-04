@@ -144,9 +144,11 @@ class AuvDreamer(Algorithm):
         batch_size = self.config["batch_size"]
 
         # Collect SampleBatches from rollout workers.
-        batch = synchronous_parallel_sample(worker_set=self.workers)
-        self._counters[NUM_AGENT_STEPS_SAMPLED] += batch.agent_steps()
-        self._counters[NUM_ENV_STEPS_SAMPLED] += batch.env_steps()
+        new_sample_batches = synchronous_parallel_sample(worker_set=self.workers)
+        for batch in new_sample_batches:
+            self._counters[NUM_AGENT_STEPS_SAMPLED] += batch.agent_steps()
+            self._counters[NUM_ENV_STEPS_SAMPLED] += batch.env_steps()
+            self.local_replay_buffer.add(new_sample_batches)
 
         fetches = {}
 
@@ -165,8 +167,6 @@ class AuvDreamer(Algorithm):
             if "log_gif" in policy_fetches:
                 gif = policy_fetches["log_gif"]
                 policy_fetches["log_gif"] = self._postprocess_gif(gif)
-
-        self.local_replay_buffer.add(batch)
 
         return fetches
 
