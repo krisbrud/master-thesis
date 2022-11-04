@@ -38,6 +38,14 @@
             }
             
         },
-
+        {
+            "name": "Python: Current File - pick process",
+            "type": "python",
+            "request": "attach",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "processId": "${command:pickProcess}"
+        },
     ]
 }
