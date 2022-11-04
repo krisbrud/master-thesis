@@ -42,7 +42,6 @@ from ray.rllib.utils.typing import (
 from ray.rllib.algorithms.dreamer.dreamer import (
     EpisodicBuffer,
     total_sampled_timesteps,
-    DreamerIteration,
 )
 
 from pipeline.config import get_auv_dreamer_config_dict
@@ -90,6 +89,7 @@ class AuvDreamer(Algorithm):
         super().setup(config)
         # `training_iteration` implementation: Setup buffer in `setup`, not
         # in `execution_plan` (deprecated).
+
         if self.config["_disable_execution_plan_api"] is True:
             self.local_replay_buffer = EpisodicBuffer(length=config["batch_length"])
 
@@ -100,40 +100,10 @@ class AuvDreamer(Algorithm):
             ):
                 samples = self.workers.local_worker().sample()
                 self.local_replay_buffer.add(samples)
-
-    @staticmethod
-    @override(Algorithm)
-    def execution_plan(workers, config, **kwargs):
-        assert (
-            len(kwargs) == 0
-        ), "Dreamer execution_plan does NOT take any additional parameters"
-
-        # Special replay buffer for Dreamer agent.
-        episode_buffer = EpisodicBuffer(length=config["batch_length"])
-
-        local_worker = workers.local_worker()
-
-        # Prefill episode buffer with initial exploration (uniform sampling)
-        while total_sampled_timesteps(local_worker) < config["prefill_timesteps"]:
-            samples = local_worker.sample()
-            episode_buffer.add(samples)
-
-        batch_size = config["batch_size"]
-        dreamer_train_iters = config["dreamer_train_iters"]
-        act_repeat = config["action_repeat"]
-
-        rollouts = ParallelRollouts(workers)
-        rollouts = rollouts.for_each(
-            DreamerIteration(
-                local_worker,
-                episode_buffer,
-                dreamer_train_iters,
-                batch_size,
-                act_repeat,
+        else:
+            raise ValueError(
+                "`_disable_execution_api` is set to False, which is not supported"
             )
-        )
-
-        return rollouts
 
     @override(Algorithm)
     def training_step(self) -> ResultDict:
@@ -144,11 +114,13 @@ class AuvDreamer(Algorithm):
         batch_size = self.config["batch_size"]
 
         # Collect SampleBatches from rollout workers.
-        new_sample_batches = synchronous_parallel_sample(worker_set=self.workers)
-        for batch in new_sample_batches:
-            self._counters[NUM_AGENT_STEPS_SAMPLED] += batch.agent_steps()
-            self._counters[NUM_ENV_STEPS_SAMPLED] += batch.env_steps()
-            self.local_replay_buffer.add(new_sample_batches)
+        # new_sample_batches = synchronous_parallel_sample(worker_set=self.workers)
+        batch = synchronous_parallel_sample(worker_set=self.workers)
+        # for batch in new_sample_batches:
+        self._counters[NUM_AGENT_STEPS_SAMPLED] += batch.agent_steps()
+        self._counters[NUM_ENV_STEPS_SAMPLED] += batch.env_steps()
+        self.local_replay_buffer.add(batch)
+        # self.local_replay_buffer.add(new_sample_batches)
 
         fetches = {}
 
