@@ -123,8 +123,8 @@ class AuvEncoder(nn.Module):
         #     self.flattened_size = self.dense_size
 
         self.nav_hidden_size = 64
-        self.nav_output_size = 16
-        self.hidden_output_size = 1024
+        self.nav_output_size = 32 
+        self.hidden_output_size = 1024 + self.nav_output_size
 
         if self.use_lidar:
             if self.use_occupancy_grid:
@@ -166,19 +166,23 @@ class AuvEncoder(nn.Module):
             else:
                 lidar_obs = x["lidar"]
 
-            # nav_latents = self.navigation_encoder(nav_obs)
+            nav_latents = self.navigation_encoder(nav_obs)
 
-            # lidar_latents = self.lidar_encoder(lidar_obs)
-            # latents = torch.cat((nav_latents, lidar_latents), dim=-1)
-            latents = torch.cat((nav_obs, lidar_obs.flatten()))
+            lidar_latents = self.lidar_encoder(lidar_obs)
+            latents = torch.cat((nav_latents, lidar_latents), dim=-1)
+            
+            # Squeeze in order to remove 1-dim from (1, n_lidars)
+            # Concat along observation dim
+            # latents = torch.cat((nav_obs, lidar_obs.squeeze(-2)), dim=1) 
             # return raw_outputs
         else:
             latents = self.navigation_encoder(x)
             # latents = nav_obs
 
-        out = self.joint_head(latents)
+        # out = self.joint_head(latents)
 
-        return out
+        # return out
+        return latents
 
 
 # Decoder, part of PlaNET
@@ -275,6 +279,11 @@ class AuvDecoder(nn.Module):
                 self.lidar_decoder = ConvDecoder(input_size=input_size, shape=self.occupancy_grid_shape)
             else:
                 self.output_size += math.prod(self.lidar_shape)
+                # self.lidar_decoder = nn.Sequential(
+                #     Linear(input_size, 64),
+                #     nn.ReLU(),
+                #     Linear(64, 180)
+                # )
                 self.lidar_decoder = AuvConvDecoder1d(
                     input_size, output_shape=lidar_shape
                 )
@@ -372,6 +381,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.dynamics = RSSM(
             self.action_size,
             32 * self.depth,
+            # 1024 + 32,
             stoch=self.stoch_size,
             deter=self.deter_size,
         )
