@@ -70,7 +70,7 @@ def get_ray_tune_auv_dreamer_config(
         # "custom_model_config": {
         "dense_size": gym_auv_config.sensor.dense_observation_size,
         "lidar_shape": gym_auv_config.sensor.lidar_shape,
-        "dense_decoder_scale": 0.5, # I.e. higher weighting of dense state
+        "dense_decoder_scale": 1, # I.e. higher weighting of dense state
         "lidar_decoder_scale": 1,
         # },
         # RSSM/PlaNET parameters
@@ -108,7 +108,7 @@ def get_ray_tune_auv_dreamer_config(
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": 5e3, # 25e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
+        "prefill_timesteps": 10e3, # 25e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",

@@ -44,7 +44,7 @@ def main():
     args = parser.parse_args()
     n_training_iters = args.train_iterations
 
-    env_name = "MovingObstaclesNoRules-v0"
+    env_name = "MovingObstaclesSimpleRewarder-v0"
 
     gym_auv_config = gym_auv.MOVING_CONFIG
     dreamer_config = get_ray_tune_auv_dreamer_config(
@@ -74,6 +74,10 @@ def main():
         run_config=air.RunConfig(
             stop={"training_iteration": n_training_iters},
             callbacks=callback_list,
+            checkpoint_config=air.CheckpointConfig(
+                checkpoint_frequency=20, 
+                checkpoint_at_end=True
+            )
         ),
         param_space=dreamer_config,
     )
