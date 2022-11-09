@@ -25,7 +25,7 @@ def _get_auv_dreamer_model_options(config: gym_auv.Config) -> dict:
         # Action STD
         "action_init_std": 5.0,
         "use_lidar": config.sensor.use_lidar,
-        "use_occupancy": True,
+        "use_occupancy": config.sensor.use_occupancy_grid,
         "occupancy_grid_shape": (2, 64, 64)
     }
     return model_config
@@ -70,7 +70,7 @@ def get_ray_tune_auv_dreamer_config(
         # "custom_model_config": {
         "dense_size": gym_auv_config.sensor.dense_observation_size,
         "lidar_shape": gym_auv_config.sensor.lidar_shape,
-        "dense_decoder_scale": 0.3, # I.e. higher weighting of dense state
+        "dense_decoder_scale": 0.5, # I.e. higher weighting of dense state
         "lidar_decoder_scale": 1,
         # },
         # RSSM/PlaNET parameters
@@ -83,7 +83,7 @@ def get_ray_tune_auv_dreamer_config(
         # Action STD
         "action_init_std": 5.0,
         "use_lidar": gym_auv_config.sensor.use_lidar,
-        "use_occupancy": True,
+        "use_occupancy": gym_auv_config.sensor.use_occupancy_grid,
         "occupancy_grid_shape": (2, 64, 64),
     }
 
@@ -96,12 +96,13 @@ def get_ray_tune_auv_dreamer_config(
         # "num_envs_per_worker": 2,
 
         "batch_size": 50,
-        "batch_length": 5, # 50,
-        "td_model_lr": 8e-5,  #  tune.loguniform(1e-4, 5e-3),
-        "actor_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
-        "critic_lr": 5e-4,  # tune.loguniform(1e-5, 5e-4),
+        "batch_length": 50,
+        "imagine_horizon": 5,
+        "td_model_lr": 8e-6, # 8e-5,  #  tune.loguniform(1e-4, 5e-3),
+        "actor_lr": 5e-5, # 5e-4,  # tune.loguniform(1e-5, 5e-4),
+        "critic_lr": 5e-5, # 5e-4,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
-        "rollout_fragment_length": 16e3,
+        # "rollout_fragment_length": 16e3,
         # "normalize_actions": tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
         # Use the custom model
@@ -111,13 +112,13 @@ def get_ray_tune_auv_dreamer_config(
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",
-        "render_env": False,
+            "render_env": False,
         # ""
         # "evaluation_config": {
         #     "render_env": True,
         # },
         "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
-        "explore_noise": 0.3, # tune.loguniform(1e-3, 5e-2),
+        "explore_noise": 0.1, # 3, # tune.loguniform(1e-3, 5e-2),
         "free_nats": 3,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {

@@ -68,13 +68,17 @@ class AuvConvEncoder1D(nn.Module):
         self.layers = [
             # Add circular padding in first layer, essentially keeping the circular physical
             # structure of the model, avoiding a "seam"
-            Conv1d(init_channels, self.depth, 4, stride=2), #, padding_mode="circular"),
+            Conv1d(init_channels, self.depth * 2, 4, stride=2), #, padding_mode="circular"),
             self.act(),
-            Conv1d(self.depth, self.depth, 4, stride=2),
+            Conv1d(self.depth * 2, self.depth * 4, 4, stride=2),
             self.act(),
-            Conv1d(self.depth, self.depth, 4, stride=2),
+            Conv1d(self.depth * 4, self.depth * 8, 4, stride=2),
             self.act(),
-            Conv1d(self.depth, self.depth, 4, stride=2),
+            Conv1d(self.depth * 8, self.depth * 8, 4, stride=2),
+            self.act(),
+            Conv1d(self.depth * 8, self.depth * 8, 4, stride=2),
+            self.act(),
+            Conv1d(self.depth * 8, self.depth * 16, 4, stride=2),
             self.act(),
         ]
         self.model = nn.Sequential(*self.layers)
@@ -124,7 +128,7 @@ class AuvEncoder(nn.Module):
 
         self.nav_hidden_size = 64
         self.nav_output_size = 32 
-        self.hidden_output_size = 1024 + self.nav_output_size
+        # self.hidden_output_size = 1024 + self.nav_output_size
 
         if self.use_lidar:
             if self.use_occupancy_grid:
@@ -133,7 +137,7 @@ class AuvEncoder(nn.Module):
             else:
                 self.lidar_encoder = AuvConvEncoder1D(shape=lidar_shape)
                 self.lidar_encoded_size = (
-                    256 * 9
+                    1024
                 )  # TODO: Refactor so this is given as argument
         else:
             self.lidar_encoder = None
@@ -146,14 +150,16 @@ class AuvEncoder(nn.Module):
             # Linear(self.dense_size, self.nav_output_size)
         )
         lidar_flat_size = math.prod(self.lidar_shape)
-        self.joint_head = nn.Sequential(
-            # Linear(
-            #     self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
-            # )
-            Linear(
-                self.dense_size + lidar_flat_size, self.hidden_output_size 
-            )
-        )
+        self.output_size = self.nav_output_size + self.lidar_encoded_size
+
+        # self.joint_head = nn.Sequential(
+        #     # Linear(
+        #     #     self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
+        #     # )
+        #     Linear(
+        #         self.dense_size + lidar_flat_size, self.hidden_output_size 
+        #     )
+        # )
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
         if self.use_lidar:
@@ -223,7 +229,9 @@ class AuvConvDecoder1d(nn.Module):
             self.act(),
             ConvTranspose1d(8 * self.depth, 4 * self.depth, 5, stride=2),
             self.act(),
-            ConvTranspose1d(4 * self.depth, 2 * self.depth, 6, stride=3),
+            ConvTranspose1d(4 * self.depth, 4 * self.depth, 5, stride=2),
+            self.act(),
+            ConvTranspose1d(4 * self.depth, 2 * self.depth, 5, stride=2),
             self.act(),
             ConvTranspose1d(2 * self.depth, self.depth, 6, stride=2),
             self.act(),
@@ -378,9 +386,11 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.stoch_size + self.deter_size, 1, 2, self.hidden_size
         )
 
+        embed_size = self.encoder.output_size
         self.dynamics = RSSM(
             self.action_size,
-            32 * self.depth,
+            embed_size,
+            # 32 * self.depth,
             # 1024 + 32,
             stoch=self.stoch_size,
             deter=self.deter_size,
