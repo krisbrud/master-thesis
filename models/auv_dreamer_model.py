@@ -68,13 +68,13 @@ class AuvConvEncoder1D(nn.Module):
         self.layers = [
             # Add circular padding in first layer, essentially keeping the circular physical
             # structure of the model, avoiding a "seam"
-            Conv1d(init_channels, self.depth, 4, stride=2, padding_mode="circular"),
+            Conv1d(init_channels, self.depth, 4, stride=2), #, padding_mode="circular"),
             self.act(),
-            Conv1d(self.depth, 2 * self.depth, 4, stride=2),
+            Conv1d(self.depth, self.depth, 4, stride=2),
             self.act(),
-            Conv1d(2 * self.depth, 4 * self.depth, 4, stride=2),
+            Conv1d(self.depth, self.depth, 4, stride=2),
             self.act(),
-            Conv1d(4 * self.depth, 8 * self.depth, 4, stride=2),
+            Conv1d(self.depth, self.depth, 4, stride=2),
             self.act(),
         ]
         self.model = nn.Sequential(*self.layers)

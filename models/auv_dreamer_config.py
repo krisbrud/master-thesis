@@ -101,7 +101,7 @@ class AuvDreamerConfig(AlgorithmConfig):
             # CNN Decoder Encoder
             "depth_size": 32,
             # General Network Parameters
-            "hidden_size": 16, # 400 
+            "hidden_size": 400,
             # Action STD
             "action_init_std": 5.0,
             

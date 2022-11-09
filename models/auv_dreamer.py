@@ -102,7 +102,7 @@ class AuvDreamer(Algorithm):
                 self.local_replay_buffer.add(samples)
         else:
             raise ValueError(
-                "`_disable_execution_api` is set to False, which is not supported"
+                "`_disable_execution_api` is set to False, which is deprecated and not supported"
             )
 
     @override(Algorithm)

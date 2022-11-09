@@ -44,6 +44,7 @@ def test_conv_encoder(batch_size):
     random_lidar_input = torch.rand(batched_shape)
 
     latent_embedding = encoder.forward(random_lidar_input)
+    # assert latent_embedding.shape == (1, 2), f"{latent_embedding.shape = }"
     print(f"{latent_embedding.shape = }")
 
 
@@ -91,7 +92,8 @@ def test_encoder(batch_size, occupancy_grid_shape):
         "dense": torch.rand((batch_size, dense_size)),
         "lidar": torch.rand((batch_size, *lidar_shape)),
     }
-    encoder(mock_input)
+    embedding = encoder(mock_input)
+    # assert embedding.shape == (1, 1024), f"{embedding.shape = }, not the expected!"
 
 
 @pytest.mark.parametrize("batch_size", [1, 7])
