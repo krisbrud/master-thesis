@@ -146,6 +146,10 @@ class AuvEncoder(nn.Module):
         self.navigation_encoder = nn.Sequential(
             Linear(self.dense_size, self.nav_hidden_size),
             nn.ELU(),
+            Linear(self.nav_hidden_size, self.nav_hidden_size),
+            nn.ELU(),
+            Linear(self.nav_hidden_size, self.nav_hidden_size),
+            nn.ELU(),
             Linear(self.nav_hidden_size, self.nav_output_size),
             # Linear(self.dense_size, self.nav_output_size)
         )
@@ -277,6 +281,7 @@ class AuvDecoder(nn.Module):
         self.dense_decoder_scale = dense_decoder_scale
         self.lidar_decoder_scale = lidar_decoder_scale
         self.dense_hidden_size = 400
+        self.n_dense_layers = 4
 
         self.use_occupancy_grid = use_occupancy_grid
         self.occupancy_grid_shape = occupancy_grid_shape
@@ -298,14 +303,17 @@ class AuvDecoder(nn.Module):
         else:
             self.lidar_decoder = None
 
-        self.navigation_decoder = nn.Sequential(
+        navigation_decoder_layers = [
             Linear(self.input_size, self.dense_hidden_size),
-            nn.ELU(),
-            Linear(self.dense_hidden_size, self.dense_hidden_size),
-            nn.ELU(),
-            Linear(self.dense_hidden_size, dense_size)
-            # Linear(self.input_size,)
-        )
+        ]
+        for i in range(self.n_dense_layers):
+            navigation_decoder_layers.extend([
+                Linear(self.dense_hidden_size, self.dense_hidden_size),
+                nn.LayerNorm(self.dense_hidden_size),
+                nn.ELU(),
+            ])
+        navigation_decoder_layers.append(Linear(self.dense_hidden_size, dense_size))
+        self.navigation_decoder = nn.Sequential(*navigation_decoder_layers)
 
     def forward(self, x: torch.TensorType):
         leading_shape = x.shape[:-1]
@@ -383,7 +391,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         )
         
         self.reward = DenseDecoder(
-            self.stoch_size + self.deter_size, 1, 2, self.hidden_size
+            self.stoch_size + self.deter_size, 1, 3, self.hidden_size
         )
 
         embed_size = self.encoder.output_size
