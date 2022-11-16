@@ -31,21 +31,25 @@ video_directory = os.path.join(this_directory, "videos")
 if not os.path.exists(video_directory):
     os.mkdir(video_directory)
 
-video_path = os.path.join(video_directory, "pathfollow")
+video_path = os.path.join(video_directory, "otter_pathfollow")
 recorder = video_recorder.VideoRecorder(env=env, base_path=video_path)
 
-straight_ahead_action = np.array([0.9, 0.0])
+# straight_ahead_action = np.array([0.9, np.random.normal(0, 0.01)])
+straight_ahead_action = np.array([20, 15]) # 20])
 
 observations = []
 
 obs = env.reset()
 print("Evaluating!")
-for i in range(100):
+for i in range(1000):
     action = straight_ahead_action
 
     obs, reward, done, info = env.step(action)
+    print(i, env.vessel._state)
     observations.append(obs)
     recorder.capture_frame()
+
+    # print(i)
 
     if done:
         obs = env.reset()
