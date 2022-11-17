@@ -45,6 +45,7 @@ def main():
     n_training_iters = args.train_iterations
 
     env_name = "MovingObstaclesNoRules-v0"
+    # env_name = "MovingObstaclesSimpleRewarder-v0"
 
     gym_auv_config = gym_auv.MOVING_CONFIG
     dreamer_config = get_ray_tune_auv_dreamer_config(
