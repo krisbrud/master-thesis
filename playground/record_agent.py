@@ -94,7 +94,7 @@ algo = AuvDreamer(config=dreamer_config)  # .load_checkpoint(args.model_checkpoi
 algo.load_checkpoint("/home/krisbrud/repos/master-thesis/playground/checkpoint-760")
 print("Loaded checkpoint!")
 
-obs = env.reset()
+dict_obs = env.reset()
 done = False
 model = algo.get_policy().model
 
@@ -108,12 +108,12 @@ print("Starting recording rollout!")
 # while not done:
 for i in range(1000):
     # action = straight_ahead_action
+    obs = dict_flattening_preprocessor.transform(dict_obs)
     obs = torch.Tensor(obs).view(1, -1).to(device)
     action, _, state = model.policy(obs, state)
 
     action = action.cpu().numpy().flatten()
     dict_obs, reward, done, info = env.step(action)
-    obs = dict_flattening_preprocessor.transform(dict_obs)
     recorder.capture_frame()
 
     if done:
