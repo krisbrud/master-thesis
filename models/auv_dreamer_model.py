@@ -112,6 +112,7 @@ class AuvEncoder(nn.Module):
         lidar_shape: Tuple[int, int],
         occupancy_grid_shape: Tuple[int, int, int],
         obs_space: gym.spaces.Space,
+        hidden_size: int,
         use_lidar: bool = True,
         use_occupancy_grid: bool = False,
     ):
@@ -126,7 +127,7 @@ class AuvEncoder(nn.Module):
         # else:
         #     self.flattened_size = self.dense_size
 
-        self.nav_hidden_size = 64
+        self.nav_hidden_size = hidden_size
         self.nav_output_size = 32 
         # self.hidden_output_size = 1024 + self.nav_output_size
 
@@ -152,6 +153,10 @@ class AuvEncoder(nn.Module):
             nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_hidden_size),
             nn.ELU(),
+            nn.LayerNorm(self.nav_hidden_size),
+            Linear(self.nav_hidden_size, self.nav_hidden_size),
+            nn.ELU(),
+            nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_output_size),
             # Linear(self.dense_size, self.nav_output_size)
         )
@@ -377,6 +382,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.dense_size,
             self.lidar_shape,
             self.occupancy_grid_shape,
+            hidden_size=self.hidden_size,
             obs_space=self.obs_space,
             use_lidar=self.use_lidar,
             use_occupancy_grid=self.use_occupancy_grid,

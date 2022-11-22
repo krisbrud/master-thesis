@@ -35,17 +35,18 @@ video_path = os.path.join(video_directory, "otter_pathfollow")
 recorder = video_recorder.VideoRecorder(env=env, base_path=video_path)
 
 # straight_ahead_action = np.array([0.9, np.random.normal(0, 0.01)])
-straight_ahead_action = np.array([20, 15]) # 20])
+# straight_ahead_action = np.array([20, 15]) # 20])
 
 observations = []
 
 obs = env.reset()
 print("Evaluating!")
 for i in range(1000):
-    action = straight_ahead_action
+    # action = straight_ahead_action
+    action = np.random.uniform(low=0, high=20, size=(2,))
 
     obs, reward, done, info = env.step(action)
-    print(i, env.vessel._state)
+    print(i, action, env.vessel._state)
     observations.append(obs)
     recorder.capture_frame()
 
