@@ -5,6 +5,7 @@
 import math
 # from turtle import forward
 import gym
+import gym.spaces
 from typing import Any, Dict, Tuple, List, Union
 import torch
 from torch import nn
@@ -214,7 +215,7 @@ class AuvConvDecoder1d(nn.Module):
     def __init__(
         self,
         input_size: int,
-        output_shape: Tuple[int],
+        output_shape: Tuple[int, int],
         depth: int = 32,
         act: ActFunc = None,
     ):
@@ -296,7 +297,7 @@ class AuvDecoder(nn.Module):
         if self.use_lidar:
             if self.use_occupancy_grid:
                 self.output_size += math.prod(self.occupancy_grid_shape)
-                self.lidar_decoder = ConvDecoder(input_size=input_size, shape=self.occupancy_grid_shape)
+                self.lidar_decoder = ConvDecoder(input_size=input_size, shape=self.occupancy_grid_shape)  # type: ignore
             else:
                 self.output_size += math.prod(self.lidar_shape)
                 # self.lidar_decoder = nn.Sequential(
@@ -348,6 +349,27 @@ class AuvDecoder(nn.Module):
         scale[self.dense_size :] = self.lidar_decoder_scale
         output_dist = td.Independent(td.Normal(mean, scale), 1)
         return output_dist
+
+# class DiscountDecoder(nn.Module):
+#     def __init__(self, input_size: int, hidden_size: int):
+#         self.input_size = input_size
+#         self.hidden_size = hidden_size
+        
+#         self.layers = nn.Sequential(
+#             Linear(input_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, 1)
+#         )
+#         self.dist =
+
+#     def forward(self, x: torch.TensorType) -> torch.TensorType:
+        
 
 
 # Represents all models in Dreamer, unifies them all into a single interface
@@ -422,6 +444,11 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.value = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
         )
+
+        self.discount = DenseDecoder(
+            self.stoch_size + self.deter_size, 1, 4, self.hidden_size, dist="binary"
+        )
+
         self.state = None
 
         self.device = (
@@ -438,7 +465,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             obs=obs, obs_space=self.obs_space, tensorlib="torch"
         )
         if state is None:
-            self.state = self.get_initial_state(batch_size=obs.shape[0])
+            self.state = self.get_initial_state() # batch_size=obs.shape[0])
         else:
             self.state = state
         # TODO: Make clearer why this slicing is done

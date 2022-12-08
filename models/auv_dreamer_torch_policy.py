@@ -58,6 +58,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         # TODO: Don't require users to call this manually.
         self._initialize_loss_from_dummy_batch()
+    
+    def _get_discount_targets(self, dones) -> torch.TensorType:
+        """Calculates the target discount rates """
 
     @override(TorchPolicyV2)
     def loss(
@@ -73,6 +76,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         encoder_weights = list(self.model.encoder.parameters())
         decoder_weights = list(self.model.decoder.parameters())
         reward_weights = list(self.model.reward.parameters())
+        discount_weights = list(self.model.discount.parameters())
         dynamics_weights = list(self.model.dynamics.parameters())
         critic_weights = list(self.model.value.parameters())
         model_weights = list(
@@ -96,8 +100,10 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         features = self.model.dynamics.get_feature(post)
         image_pred = self.model.decoder(features)
         reward_pred = self.model.reward(features)
+        discount_pred = self.model.discount(features)
         image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
         reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
+        discount_loss = -torch.mean(discount_pred)
         prior_dist = self.model.dynamics.get_dist(prior[0], prior[1])
         post_dist = self.model.dynamics.get_dist(post[0], post[1])
         div = torch.mean(
