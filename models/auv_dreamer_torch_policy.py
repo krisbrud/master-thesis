@@ -1,3 +1,4 @@
+# type: ignore
 from typing import (
     List,
     Tuple,
@@ -25,11 +26,19 @@ from ray.rllib.models.modelv2 import ModelV2
 from ray.rllib.policy.torch_policy_v2 import TorchPolicyV2
 from ray.rllib.models.modelv2 import restore_original_dimensions
 
+import ray.rllib.algorithms.dreamer
+
 import gym.spaces
+
+from models.auv_dreamer_model import AuvDreamerModel
+from models.auv_dreamer_config import AuvDreamerConfig
 
 torch, nn = try_import_torch()
 if torch:
     from torch import distributions as td
+# import torch
+# from torch import nn
+# from torch import distributions as td
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +66,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         log_gif = False
         if "log_gif" in train_batch:
             log_gif = True
+
+        assert isinstance(model, AuvDreamerModel)
 
         # This is the computation graph for workers (inner adaptation steps)
         encoder_weights = list(self.model.encoder.parameters())

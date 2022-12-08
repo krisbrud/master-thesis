@@ -114,6 +114,7 @@ class AuvDreamerConfig(AlgorithmConfig):
             "use_lidar": DEFAULT_CONFIG.sensor.use_lidar,
             "use_occupancy": DEFAULT_CONFIG.sensor.use_occupancy_grid,
             "occupancy_grid_shape": (2, DEFAULT_CONFIG.sensor.occupancy_grid_size, DEFAULT_CONFIG.sensor.occupancy_grid_size),
+            "use_discount_prediction": True,
         }
 
         # Override some of AlgorithmConfig's default values with PPO-specific values.
