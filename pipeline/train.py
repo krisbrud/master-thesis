@@ -36,10 +36,9 @@ def main():
         type=int,
     )
     parser.add_argument(
-        "--use-wandb",
+        "--no-wandb",
         help="Whether to use Weights & Biases (wandb) for tracking the experiment",
-        default=True,
-        type=bool,
+        action="store_true",
     )
     args = parser.parse_args()
     n_training_iters = args.train_iterations
@@ -59,7 +58,8 @@ def main():
     # Populated from environment variables
     callback_list = []
     
-    if args.use_wandb:
+    use_wandb = not args.no_wandb
+    if use_wandb:
         callback_list.append(callbacks.get_wandb_logger_callback())
 
     tuner = tune.Tuner(
