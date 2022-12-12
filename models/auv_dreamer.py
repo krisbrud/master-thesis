@@ -5,7 +5,7 @@ import gym
 from models.auv_dreamer_model import AuvDreamerModel
 from models.auv_dreamer_torch_policy import AuvDreamerTorchPolicy
 from models.auv_dreamer_config import AuvDreamerConfig
-
+from models.episode_replay_buffer import EpisodeSequenceBuffer
 
 import logging
 import numpy as np
@@ -40,7 +40,7 @@ from ray.rllib.utils.typing import (
 )
 
 from ray.rllib.algorithms.dreamer.dreamer import (
-    EpisodicBuffer,
+    # EpisodicBuffer,
     total_sampled_timesteps,
 )
 
@@ -91,7 +91,7 @@ class AuvDreamer(Algorithm):
         # in `execution_plan` (deprecated).
 
         if self.config["_disable_execution_plan_api"] is True:
-            self.local_replay_buffer = EpisodicBuffer(length=config["batch_length"])
+            self.local_replay_buffer = EpisodeSequenceBuffer(replay_sequence_length=config["batch_length"])
 
             # Prefill episode buffer with initial exploration (uniform sampling)
             while (
@@ -99,6 +99,7 @@ class AuvDreamer(Algorithm):
                 < self.config["prefill_timesteps"]
             ):
                 samples = self.workers.local_worker().sample()
+                # breakpoint()
                 self.local_replay_buffer.add(samples)
         else:
             raise ValueError(
@@ -116,6 +117,7 @@ class AuvDreamer(Algorithm):
         # Collect SampleBatches from rollout workers.
         # new_sample_batches = synchronous_parallel_sample(worker_set=self.workers)
         batch = synchronous_parallel_sample(worker_set=self.workers)
+        # breakpoint()
         # for batch in new_sample_batches:
         self._counters[NUM_AGENT_STEPS_SAMPLED] += batch.agent_steps()
         self._counters[NUM_ENV_STEPS_SAMPLED] += batch.env_steps()
@@ -126,12 +128,16 @@ class AuvDreamer(Algorithm):
 
         # Dreamer training loop.
         # Run multiple sub-iterations for each training iteration.
+        # breakpoint()
         print("Starting training iteration!")
+        n_dones = []
         for n in range(dreamer_train_iters):
             # print(f"sub-iteration={n}/{dreamer_train_iters}")
             batch = self.local_replay_buffer.sample(batch_size)
+            n_dones.append(batch["dones"].sum())
             fetches = local_worker.learn_on_batch(batch)
         print("Training iteration done!")
+        print(n_dones)
 
         if fetches:
             # Custom logging.
