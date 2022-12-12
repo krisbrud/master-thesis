@@ -74,6 +74,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         if "log_gif" in train_batch:
             log_gif = True
 
+        # breakpoint()
+
         assert isinstance(model, AuvDreamerModel)
 
         # This is the computation graph for workers (inner adaptation steps)
@@ -104,13 +106,14 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         features = self.model.dynamics.get_feature(post)
         image_pred = self.model.decoder(features)
         reward_pred = self.model.reward(features)
-        discount_pred = self.model.discount(features)
+        # discount_pred = self.model.discount(features)
         image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
         reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
         
-        discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
+        # breakpoint()
+        # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
 
-        discount_loss = -torch.mean(discount_pred.log_prob(TODO))
+        # discount_loss = -torch.mean(discount_pred.log_prob(TODO))
         prior_dist = self.model.dynamics.get_dist(prior[0], prior[1])
         post_dist = self.model.dynamics.get_dist(post[0], post[1])
         div = torch.mean(
@@ -130,11 +133,21 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         with FreezeParameters(model_weights + critic_weights):
             reward = self.model.reward(imag_feat).mean
             value = self.model.value(imag_feat).mean
+            # if config["use_discount_prediction"]
+            discount = self.model.discount(imag_feat).mean 
         pcont = self.config["gamma"] * torch.ones_like(reward)
+
+        # As in the implementation of DreamerV2, we override the predicted discount rate of the first timestep with the true
+        # discount rate from the replay buffer. 
+        # We do this because this value is known, while the future imagined timesteps are just predictions
+        # first_is_done = 1.0 - train_batch["dones"][:1].int()
+        
+        # Estimate probability of continuing
+        prob_continue = pcont
 
         # Similar to GAE-Lambda, calculate value targets
         next_values = torch.cat([value[:-1][1:], value[-1][None]], dim=0)
-        inputs = reward[:-1] + pcont[:-1] * next_values * (1 - self.config["lambda"])
+        inputs = reward[:-1] + prob_continue[:-1] * next_values * (1 - self.config["lambda"])
 
         def agg_fn(x, y):
             return y[0] + y[1] * self.config["lambda"] * x
@@ -142,14 +155,14 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         last = value[-1]
         returns = []
         for i in reversed(range(len(inputs))):
-            last = agg_fn(last, [inputs[i], pcont[:-1][i]])
+            last = agg_fn(last, [inputs[i], prob_continue[:-1][i]])
             returns.append(last)
 
         returns = list(reversed(returns))
         returns = torch.stack(returns, dim=0)
-        discount_shape = pcont[:1].size()
+        discount_shape = prob_continue[:1].size()
         discount = torch.cumprod(
-            torch.cat([torch.ones(*discount_shape).to(device), pcont[:-2]], dim=0),
+            torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
             dim=0,
         )
         actor_loss = -torch.mean(discount * returns)
@@ -193,6 +206,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         loss_dict = self.stats_dict
 
+        # breakpoint()
+
         return (
             loss_dict["model_loss"],
             loss_dict["actor_loss"],
@@ -208,30 +223,37 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         ] = None,
         episode: Optional["Episode"] = None,
     ) -> SampleBatch:
-        """Batch format should be in the form of (s_t, a_(t-1), r_(t-1))
-        When t=0, the resetted obs is paired with action and reward of 0.
+        """Batch format should be in the form of (o_t, a_(t-1), r_t, done_t)
+        When t=0, the resetted obs is paired with action and reward of 0, as well as an initial done of false.
         """
         obs = sample_batch[SampleBatch.OBS]
         new_obs = sample_batch[SampleBatch.NEXT_OBS]
         action = sample_batch[SampleBatch.ACTIONS]
         reward = sample_batch[SampleBatch.REWARDS]
         eps_ids = sample_batch[SampleBatch.EPS_ID]
+        dones = sample_batch[SampleBatch.DONES]
+        print("postprocessing trajectory!")
 
         act_shape = action.shape
         act_reset = np.array([0.0] * act_shape[-1])[None]
         rew_reset = np.array(0.0)[None]
+        dones_reset = np.array([False] * dones.shape[-1])
         obs_end = np.array(new_obs[act_shape[0] - 1])[None]
 
         batch_obs = np.concatenate([obs, obs_end], axis=0)
         batch_action = np.concatenate([act_reset, action], axis=0)
         batch_rew = np.concatenate([rew_reset, reward], axis=0)
         batch_eps_ids = np.concatenate([eps_ids, eps_ids[-1:]], axis=0)
+        batch_dones = np.concatenate([dones_reset, dones])
+
+        # breakpoint()
 
         new_batch = {
             SampleBatch.OBS: batch_obs,
             SampleBatch.REWARDS: batch_rew,
             SampleBatch.ACTIONS: batch_action,
             SampleBatch.EPS_ID: batch_eps_ids,
+            SampleBatch.DONES: batch_dones,
         }
         return SampleBatch(new_batch)
 
