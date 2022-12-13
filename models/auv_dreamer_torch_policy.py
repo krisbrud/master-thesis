@@ -59,8 +59,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # TODO: Don't require users to call this manually.
         self._initialize_loss_from_dummy_batch()
     
-    def _get_discount_targets(self, dones) -> torch.TensorType:
-        """Calculates the target discount rates """
+    # def _get_discount_targets(self, dones) -> torch.TensorType:
+    #     """Calculates the target discount rates """
 
     def _get_discount_targets(self, dones: torch.TensorType, discount_rate: float):
         """Converts a tensor of boolean `done` values elementwise to discount_rate if False or 0 if True"""
@@ -110,7 +110,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
         reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
         
-        # breakpoint()
+        breakpoint()
         # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
 
         # discount_loss = -torch.mean(discount_pred.log_prob(TODO))
