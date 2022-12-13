@@ -1,4 +1,7 @@
+import random
+
 from ray.rllib.utils.replay_buffers import ReplayBuffer, StorageUnit
+from ray.rllib.policy.sample_batch import concat_samples
 
 class EpisodeSequenceBuffer(ReplayBuffer):
     def __init__(self, capacity: int = 1000, replay_sequence_length: int = 50):
