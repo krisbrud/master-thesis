@@ -209,15 +209,15 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # multiplied element-wise with next_values (essentially all the values except the first one)
         inputs = reward[:-1] + prob_continue[:-1] * next_values * (1 - self.config["lambda"])
 
-        def agg_fn(x, y):
+        def agg_fn(last, step_inputs, prob_continue):
             # Essentially a variant of a reducer for calculating value targets.
             # y[0] are the inputs (defined above), while y[1] is typically the probability of continuing
-            return y[0] + y[1] * self.config["lambda"] * x
+            return step_inputs + prob_continue * self.config["lambda"] * last
 
         last = value[-1]
         returns = []
         for i in reversed(range(len(inputs))):
-            last = agg_fn(last, [inputs[i], prob_continue[:-1][i]])
+            last = agg_fn(last, inputs[i], prob_continue[:-1][i])
             returns.append(last)
 
         returns = list(reversed(returns))
