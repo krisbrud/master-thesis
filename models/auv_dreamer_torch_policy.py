@@ -59,12 +59,56 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # TODO: Don't require users to call this manually.
         self._initialize_loss_from_dummy_batch()
     
+
     # def _get_discount_targets(self, dones) -> torch.TensorType:
     #     """Calculates the target discount rates """
 
     def _get_discount_targets(self, dones: torch.TensorType, discount_rate: float):
         """Converts a tensor of boolean `done` values elementwise to discount_rate if False or 0 if True"""
         return (~dones).int() * discount_rate
+
+    def _model_loss(self, model: ModelV2, train_batch: SampleBatch) -> Tuple[Dict[str, TensorType], TensorType]:
+        obs = restore_original_dimensions(
+            train_batch["obs"], self.observation_space.original_space, "torch"
+        )
+        # PlaNET Model Loss
+        latent = self.model.encoder(obs)
+        post, prior = self.model.dynamics.observe(latent, train_batch["actions"])
+        features = self.model.dynamics.get_feature(post)
+        image_pred = self.model.decoder(features)
+        reward_pred = self.model.reward(features)
+        discount_pred = self.model.discount(features)
+        image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
+        reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
+        not_dones = 1.0 - train_batch["dones"]
+        discount_loss = -torch.mean(discount_pred.log_prob(not_dones))
+        
+        # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
+
+        # discount_loss = -torch.mean(discount_pred.log_prob(TODO))
+        prior_dist = self.model.dynamics.get_dist(prior[0], prior[1])
+        post_dist = self.model.dynamics.get_dist(post[0], post[1])
+        div = torch.mean(
+            torch.distributions.kl_divergence(post_dist, prior_dist).sum(dim=2)
+        )
+        div = torch.clamp(div, min=(self.config["free_nats"]))
+        model_loss = self.config["kl_coeff"] * div + reward_loss + image_loss + discount_loss
+
+        prior_ent = torch.mean(prior_dist.entropy())
+        post_ent = torch.mean(post_dist.entropy())
+
+        model_return_dict = {
+            "model_loss": model_loss,
+            "image_loss": image_loss,
+            "reward_loss": reward_loss,
+            "prior_ent": prior_ent,
+            "post_ent": post_ent,
+            "discount_loss": discount_loss,
+            "divergence": div,
+        }
+
+        return model_return_dict, prior, post
+
 
     @override(TorchPolicyV2)
     def loss(
@@ -86,7 +130,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         dynamics_weights = list(self.model.dynamics.parameters())
         critic_weights = list(self.model.value.parameters())
         model_weights = list(
-            encoder_weights + decoder_weights + reward_weights + dynamics_weights
+            encoder_weights + decoder_weights + reward_weights + dynamics_weights + discount_weights
         )
         device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -94,35 +138,38 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         # if isinstance(self.observation_space.original_space, gym.spaces.Dict):
         #     # Set observation to original
-        obs = restore_original_dimensions(
-            train_batch["obs"], self.observation_space.original_space, "torch"
-        )
-        # else:
-        #     obs = train_batch["obs"]
+        # obs = restore_original_dimensions(
+        #     train_batch["obs"], self.observation_space.original_space, "torch"
+        # )
+        # # else:
+        # #     obs = train_batch["obs"]
 
-        # PlaNET Model Loss
-        latent = self.model.encoder(obs)
-        post, prior = self.model.dynamics.observe(latent, train_batch["actions"])
-        features = self.model.dynamics.get_feature(post)
-        image_pred = self.model.decoder(features)
-        reward_pred = self.model.reward(features)
-        # discount_pred = self.model.discount(features)
-        image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
-        reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
+        ## Model Loss
+        # latent = self.model.encoder(obs)
+        # post, prior = self.model.dynamics.observe(latent, train_batch["actions"])
+        # features = self.model.dynamics.get_feature(post)
+        # image_pred = self.model.decoder(features)
+        # reward_pred = self.model.reward(features)
+        # # discount_pred = self.model.discount(features)
+        # image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
+        # reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
         
-        breakpoint()
-        # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
+        # breakpoint()
+        # # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
 
-        # discount_loss = -torch.mean(discount_pred.log_prob(TODO))
+        # # discount_loss = -torch.mean(discount_pred.log_prob(TODO))
+        # prior_dist = self.model.dynamics.get_dist(prior[0], prior[1])
+        # post_dist = self.model.dynamics.get_dist(post[0], post[1])
+        # div = torch.mean(
+        #     torch.distributions.kl_divergence(post_dist, prior_dist).sum(dim=2)
+        # )
+        # div = torch.clamp(div, min=(self.config["free_nats"]))
+        # model_loss = self.config["kl_coeff"] * div + reward_loss + image_loss
+        model_return_dict, prior, post = self._model_loss(model, train_batch)
         prior_dist = self.model.dynamics.get_dist(prior[0], prior[1])
         post_dist = self.model.dynamics.get_dist(post[0], post[1])
-        div = torch.mean(
-            torch.distributions.kl_divergence(post_dist, prior_dist).sum(dim=2)
-        )
-        div = torch.clamp(div, min=(self.config["free_nats"]))
-        model_loss = self.config["kl_coeff"] * div + reward_loss + image_loss
-
-        # Actor Loss
+        #
+        ## Actor Loss
         # [imagine_horizon, batch_length*batch_size, feature_size]
         with torch.no_grad():
             actor_states = [v.detach() for v in post]
@@ -134,8 +181,17 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             reward = self.model.reward(imag_feat).mean
             value = self.model.value(imag_feat).mean
             # if config["use_discount_prediction"]
-            discount = self.model.discount(imag_feat).mean 
-        pcont = self.config["gamma"] * torch.ones_like(reward)
+            discount = self.model.discount(imag_feat).mean
+            
+            # Pad discount prediction with actual values for first time step
+            first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1)  # shape: (1, batch_size)
+            
+            # Shift the discount rates - as they measure whether the following state
+            # will be valid, not if the current state is valid.
+            # Pad on beginning with whether the first state in the replay buffer is terminal
+            padded_discount = torch.cat((first_not_done, discount[:-1]))
+
+        # pcont = self.config["gamma"] * torch.ones_like(reward)
 
         # As in the implementation of DreamerV2, we override the predicted discount rate of the first timestep with the true
         # discount rate from the replay buffer. 
@@ -143,13 +199,19 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # first_is_done = 1.0 - train_batch["dones"][:1].int()
         
         # Estimate probability of continuing
-        prob_continue = pcont
+        prob_continue = padded_discount  # discount  #  pcont
 
         # Similar to GAE-Lambda, calculate value targets
-        next_values = torch.cat([value[:-1][1:], value[-1][None]], dim=0)
+        # next_values = torch.cat([value[:-1][1:], value[-1][None]], dim=0)  # This is equivalent to value[1:]
+        next_values = value[1:] 
+        
+        # The inputs variable contains the rewards (except the last one) as well as the probability of continuing
+        # multiplied element-wise with next_values (essentially all the values except the first one)
         inputs = reward[:-1] + prob_continue[:-1] * next_values * (1 - self.config["lambda"])
 
         def agg_fn(x, y):
+            # Essentially a variant of a reducer for calculating value targets.
+            # y[0] are the inputs (defined above), while y[1] is typically the probability of continuing
             return y[0] + y[1] * self.config["lambda"] * x
 
         last = value[-1]
@@ -179,24 +241,27 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         prior_ent = torch.mean(prior_dist.entropy())
         post_ent = torch.mean(post_dist.entropy())
         gif = None
-        if log_gif:
-            gif = log_summary(
-                train_batch["obs"],
-                train_batch["actions"],
-                latent,
-                image_pred,
-                self.model,
-            )
+        # if log_gif:
+        #     gif = log_summary(
+        #         train_batch["obs"],
+        #         train_batch["actions"],
+        #         latent,
+        #         image_pred,
+        #         self.model,
+        #     )
+
         return_dict = {
-            "model_loss": model_loss,
-            "reward_loss": reward_loss,
-            "image_loss": image_loss,
-            "divergence": div,
+            # "model_loss": model_loss,
+            # "reward_loss": reward_loss,
+            # "image_loss": image_loss,
+            # "divergence": div,
+            **model_return_dict, # model_loss, image_loss, divergence etc.
             "actor_loss": actor_loss,
             "critic_loss": critic_loss,
             "prior_ent": prior_ent,
             "post_ent": post_ent,
         }
+
         for key, val in return_dict.items():
             model.tower_stats[key] = val
         
@@ -206,7 +271,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         loss_dict = self.stats_dict
 
-        # breakpoint()
+        breakpoint()
 
         return (
             loss_dict["model_loss"],
