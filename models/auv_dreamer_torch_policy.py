@@ -81,6 +81,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
         reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
         not_dones = 1.0 - train_batch["dones"]
+
+        breakpoint()
+
         discount_loss = -torch.mean(discount_pred.log_prob(not_dones))
         
         # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
@@ -190,6 +193,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             # will be valid, not if the current state is valid.
             # Pad on beginning with whether the first state in the replay buffer is terminal
             padded_discount = torch.cat((first_not_done, discount[:-1]))
+            discount_cumprod = torch.cumprod(padded_discount, dim=0)
 
         # pcont = self.config["gamma"] * torch.ones_like(reward)
 
@@ -205,6 +209,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # next_values = torch.cat([value[:-1][1:], value[-1][None]], dim=0)  # This is equivalent to value[1:]
         next_values = value[1:] 
         
+        breakpoint()
+
         # The inputs variable contains the rewards (except the last one) as well as the probability of continuing
         # multiplied element-wise with next_values (essentially all the values except the first one)
         inputs = reward[:-1] + prob_continue[:-1] * next_values * (1 - self.config["lambda"])
@@ -222,12 +228,13 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         returns = list(reversed(returns))
         returns = torch.stack(returns, dim=0)
-        discount_shape = prob_continue[:1].size()
-        discount = torch.cumprod(
-            torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
-            dim=0,
-        )
-        actor_loss = -torch.mean(discount * returns)
+        # discount_shape = prob_continue[:1].size()
+        # discount = torch.cumprod(
+        #     torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
+        #     dim=0,
+        # )
+        # actor_loss = -torch.mean(discount * returns)
+        actor_loss = -torch.mean(discount_cumprod * returns)
 
         # Critic Loss
         with torch.no_grad():
@@ -302,7 +309,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         act_shape = action.shape
         act_reset = np.array([0.0] * act_shape[-1])[None]
         rew_reset = np.array(0.0)[None]
-        dones_reset = np.array([False] * dones.shape[-1])
+        dones_reset = np.array(False)[None]
         obs_end = np.array(new_obs[act_shape[0] - 1])[None]
 
         batch_obs = np.concatenate([obs, obs_end], axis=0)
@@ -310,8 +317,6 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         batch_rew = np.concatenate([rew_reset, reward], axis=0)
         batch_eps_ids = np.concatenate([eps_ids, eps_ids[-1:]], axis=0)
         batch_dones = np.concatenate([dones_reset, dones])
-
-        # breakpoint()
 
         new_batch = {
             SampleBatch.OBS: batch_obs,
