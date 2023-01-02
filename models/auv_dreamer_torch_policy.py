@@ -80,9 +80,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         discount_pred = self.model.discount(features)
         image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
         reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
-        not_dones = 1.0 - train_batch["dones"]
+        not_dones = 1.0 - train_batch["dones"].float()
 
-        breakpoint()
+        # breakpoint()
 
         discount_loss = -torch.mean(discount_pred.log_prob(not_dones))
         
@@ -187,7 +187,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             discount = self.model.discount(imag_feat).mean
             
             # Pad discount prediction with actual values for first time step
-            first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1)  # shape: (1, batch_size)
+            first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1).float()  # shape: (1, batch_size)
             
             # Shift the discount rates - as they measure whether the following state
             # will be valid, not if the current state is valid.
@@ -209,7 +209,10 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # next_values = torch.cat([value[:-1][1:], value[-1][None]], dim=0)  # This is equivalent to value[1:]
         next_values = value[1:] 
         
-        breakpoint()
+        # breakpoint()
+        # print(f"{reward.shape = }")
+        # print(f"{prob_continue.shape = }")
+        # print(f"{next_values.shape = }")
 
         # The inputs variable contains the rewards (except the last one) as well as the probability of continuing
         # multiplied element-wise with next_values (essentially all the values except the first one)
@@ -234,14 +237,25 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         #     dim=0,
         # )
         # actor_loss = -torch.mean(discount * returns)
-        actor_loss = -torch.mean(discount_cumprod * returns)
+        # print(f"{discount_cumprod.shape = }")
+        # print(f"{discount_cumprod[:-1].shape = }")
+        # print(f"{returns.shape = }")
+
+
+        # breakpoint()
+
+        actor_loss = -torch.mean(discount_cumprod[:-1] * returns)
 
         # Critic Loss
         with torch.no_grad():
             val_feat = imag_feat.detach()[:-1]
             target = returns.detach()
-            val_discount = discount.detach()
+            # val_discount = discount.detach()
+            val_discount = discount_cumprod[:-1].detach()
         val_pred = self.model.value(val_feat)
+
+        # breakpoint()
+
         critic_loss = -torch.mean(val_discount * val_pred.log_prob(target))
 
         # Logging purposes
@@ -278,7 +292,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         loss_dict = self.stats_dict
 
-        breakpoint()
+        # breakpoint()
 
         return (
             loss_dict["model_loss"],
@@ -304,7 +318,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         reward = sample_batch[SampleBatch.REWARDS]
         eps_ids = sample_batch[SampleBatch.EPS_ID]
         dones = sample_batch[SampleBatch.DONES]
-        print("postprocessing trajectory!")
+        # print("postprocessing trajectory!")
 
         act_shape = action.shape
         act_reset = np.array([0.0] * act_shape[-1])[None]

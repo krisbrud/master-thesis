@@ -99,8 +99,6 @@ class AuvDreamer(Algorithm):
                 < self.config["prefill_timesteps"]
             ):
                 samples = self.workers.local_worker().sample()
-                samples = 
-                # breakpoint()
                 self.local_replay_buffer.add(samples)
         else:
             raise ValueError(
