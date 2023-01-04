@@ -5,7 +5,7 @@ from ray.rllib.algorithms.dreamer.dreamer_model import ConvEncoder
 
 
 from models.auv_dreamer_model import AuvConvDecoder1d, AuvConvEncoder1D
-from gym_auv import Config
+import gym_auv
 from ray.rllib.algorithms.dreamer import DreamerConfig
 from ray.rllib.algorithms.dreamer.dreamer_model import ConvEncoder
 from ray.rllib.algorithms.dreamer.utils import Linear
@@ -36,22 +36,22 @@ def _print_model_dims(x, layers: List[torch.nn.Module]):
             out = _apply_and_print_output_dim(out, layer)
 
 
-def _get_lidar_shape() -> Tuple[int, int]:
+def get_lidar_shape() -> Tuple[int, int]:
     # Returns a tuple of the shape of the lidar measurements of a single timestep
-    default_config = Config()
+    default_config = gym_auv.DEFAULT_CONFIG
     lidar_shape = (1, default_config.sensor.n_lidar_rays)
 
     return lidar_shape
 
 
-def _get_dense_size() -> int:
+def get_dense_size() -> int:
     # Returns a tuple of the shape of the lidar measurements of a single timestep
     dense_size = 6
 
     return dense_size
 
 
-def _get_rssm_feature_size() -> int:
+def get_rssm_feature_size() -> int:
     # Returns the feature size of the latent state, for use in testing the models
     dreamer_config = DreamerConfig()
     feature_size = (
@@ -65,7 +65,7 @@ def _get_rssm_feature_size() -> int:
 def experiment_with_encoder_conv_shapes():
     # pass
 
-    lidar_shape = _get_lidar_shape()
+    lidar_shape = get_lidar_shape()
     x = torch.rand(lidar_shape)
     x = x.view(-1, *(lidar_shape[-2:]))
 
@@ -91,17 +91,17 @@ def experiment_with_encoder_conv_shapes():
     ]
 
     print("Encoder model dimensions:")
-    _print_model_dims(x, layers)
+    # _print_model_dims(x, layers)
     print("\n")
 
 
 def experiment_with_decoder_conv_shapes():
     # pass
 
-    lidar_shape = _get_lidar_shape()
+    lidar_shape = get_lidar_shape()
     print(f"{lidar_shape = }")
 
-    input_size = _get_rssm_feature_size()
+    input_size = get_rssm_feature_size()
     x = torch.rand(input_size)
     # x = x.view(-1, *(lidar_shape[-2:]))
     print(f"{x.shape = }")

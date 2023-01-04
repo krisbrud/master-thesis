@@ -147,17 +147,17 @@ class AuvEncoder(nn.Module):
 
         self.navigation_encoder = nn.Sequential(
             Linear(self.dense_size, self.nav_hidden_size),
-            nn.ELU(),
-            nn.LayerNorm(self.nav_hidden_size),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_hidden_size),
-            nn.ELU(),
-            nn.LayerNorm(self.nav_hidden_size),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_hidden_size),
-            nn.ELU(),
-            nn.LayerNorm(self.nav_hidden_size),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_hidden_size),
-            nn.ELU(),
-            nn.LayerNorm(self.nav_hidden_size),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_output_size),
             # Linear(self.dense_size, self.nav_output_size)
         )
@@ -187,6 +187,11 @@ class AuvEncoder(nn.Module):
             nav_latents = self.navigation_encoder(nav_obs)
 
             lidar_latents = self.lidar_encoder(lidar_obs)
+
+            if lidar_latents.isnan().any():
+                print("Lidar latents contains NaNs")
+                breakpoint()
+
             latents = torch.cat((nav_latents, lidar_latents), dim=-1)
             
             # Squeeze in order to remove 1-dim from (1, n_lidars)
@@ -473,7 +478,13 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         action = self.state[4]
 
         embed = self.encoder(obs_dict)
+        # breakpoint()
+        # try:
         post, _ = self.dynamics.obs_step(post, action, embed)
+        # except:
+            # embed has nans
+
+            # breakpoint()
         feat = self.dynamics.get_feature(post)
 
         action_dist = self.actor(feat)

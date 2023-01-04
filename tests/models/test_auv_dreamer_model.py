@@ -25,9 +25,9 @@ import gym
 from pipeline.config import get_auv_dreamer_config_dict
 
 from tests.models.model_utils import (
-    _get_lidar_shape,
-    _get_rssm_feature_size,
-    _get_dense_size,
+    get_lidar_shape,
+    get_rssm_feature_size,
+    get_dense_size,
 )
 
 # TODO: Test encoder for different batch sizes
@@ -36,7 +36,7 @@ def test_conv_encoder(batch_size):
     # Make a encoder, check that it passes data of the correct dimensions
     # and supports backprop
     default_config = Config()
-    lidar_shape = _get_lidar_shape()
+    lidar_shape = get_lidar_shape()
     batched_shape = (batch_size, *lidar_shape)
     print(f"{batched_shape = }")
 
@@ -75,11 +75,18 @@ def occupancy_grid_shape() -> Tuple[int,int,int]:
 
 @pytest.mark.parametrize("batch_size", [1, 7])
 def test_encoder(batch_size, occupancy_grid_shape):
-    lidar_shape = _get_lidar_shape()
-    dense_size = _get_dense_size()
+    lidar_shape = get_lidar_shape()
+    dense_size = get_dense_size()
     mock_env = TestScenario1(gym_auv.DEFAULT_CONFIG)
     obs_space = mock_env.observation_space
-    encoder = AuvEncoder(dense_size, lidar_shape, occupancy_grid_shape, obs_space=obs_space)
+    encoder = AuvEncoder(dense_size=dense_size, 
+        lidar_shape=lidar_shape, 
+        occupancy_grid_shape=occupancy_grid_shape, 
+        obs_space=obs_space,
+        hidden_size=400,
+        use_lidar=True,
+        use_occupancy_grid=False,
+        )
 
     # input_size = dense_size + math.prod(lidar_shape)
     # mock_input = _mock_input(batch_size=batch_size, input_size=input_size)
@@ -100,10 +107,10 @@ def test_encoder(batch_size, occupancy_grid_shape):
 def test_conv_decoder(batch_size):
     # Make a reconstructive decoder, check that it passes data of the correct dimensions
     # and supports backprop
-    n_rssm_features = _get_rssm_feature_size()
+    n_rssm_features = get_rssm_feature_size()
     mock_latent_embedding = torch.rand((batch_size, n_rssm_features))
 
-    lidar_shape = _get_lidar_shape()
+    lidar_shape = get_lidar_shape()
 
     decoder = AuvConvDecoder1d(n_rssm_features, output_shape=lidar_shape)
     reconstruction = decoder.forward(mock_latent_embedding)
@@ -141,8 +148,8 @@ def _latents(request, latent_size):
 
 
 def test_decoder(latents, latent_size, occupancy_grid_shape):
-    dense_size = _get_dense_size()
-    lidar_shape = _get_lidar_shape()
+    dense_size = get_dense_size()
+    lidar_shape = get_lidar_shape()
     mock_scale = 1e-3
     decoder = AuvDecoder(latent_size, dense_size, lidar_shape, occupancy_grid_shape, mock_scale, mock_scale, use_lidar=True)
     out = decoder(latents)
