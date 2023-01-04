@@ -1,5 +1,4 @@
 # %%
-from turtle import position
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches
@@ -20,7 +19,8 @@ def make_vessel() -> Vessel:
 
 
 def make_obstacle() -> CircularObstacle:
-    pos = np.array([4, 7])
+    # pos = np.array([4, 7])
+    pos = np.array([6, 4.8])
     radius = 1
 
     return CircularObstacle(pos, radius)
