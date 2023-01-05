@@ -375,6 +375,21 @@ class AuvDecoder(nn.Module):
 
 #     def forward(self, x: torch.TensorType) -> torch.TensorType:
         
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_size=400, output_size=400) -> None:
+        super().__init__()
+        self.layers = nn.Sequential(
+            Linear(1, hidden_size),
+            nn.ReLU(),
+            Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            Linear(hidden_size, output_size)
+        )
+    
+    def forward(self, x: torch.TensorType) -> torch.TensorType:
+        return self.layers(x)
 
 
 # Represents all models in Dreamer, unifies them all into a single interface
@@ -405,31 +420,34 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
 
         self.action_size = action_space.shape[0]
 
-        self.encoder = AuvEncoder(
-            self.dense_size,
-            self.lidar_shape,
-            self.occupancy_grid_shape,
-            hidden_size=self.hidden_size,
-            obs_space=self.obs_space,
-            use_lidar=self.use_lidar,
-            use_occupancy_grid=self.use_occupancy_grid,
-        )
-        self.decoder = AuvDecoder(
-            self.stoch_size + self.deter_size,
-            self.dense_size,
-            self.lidar_shape,
-            self.occupancy_grid_shape,
-            dense_decoder_scale=self.dense_decoder_scale,
-            lidar_decoder_scale=self.lidar_decoder_scale,
-            use_lidar=self.use_lidar,
-            use_occupancy_grid=self.use_occupancy_grid,
-        )
+        # self.encoder = AuvEncoder(
+        #     self.dense_size,
+        #     self.lidar_shape,
+        #     self.occupancy_grid_shape,
+        #     hidden_size=self.hidden_size,
+        #     obs_space=self.obs_space,
+        #     use_lidar=self.use_lidar,
+        #     use_occupancy_grid=self.use_occupancy_grid,
+        # )
+        embed_size = 400
+        self.encoder = MLP(self.action_size, self.hidden_size, embed_size)
+
+        # self.decoder = AuvDecoder(
+        #     self.stoch_size + self.deter_size,
+        #     self.dense_size,
+        #     self.lidar_shape,
+        #     self.occupancy_grid_shape,
+        #     dense_decoder_scale=self.dense_decoder_scale,
+        #     lidar_decoder_scale=self.lidar_decoder_scale,
+        #     use_lidar=self.use_lidar,
+        #     use_occupancy_grid=self.use_occupancy_grid,
+        # )
         
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
         )
 
-        embed_size = self.encoder.output_size
+        # embed_size = self.encoder.output_size
         self.dynamics = RSSM(
             self.action_size,
             embed_size,
@@ -466,9 +484,10 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         """Returns the action. Runs through the encoder, recurrent model,
         and policy to obtain action.
         """
-        obs_dict = restore_original_dimensions(
-            obs=obs, obs_space=self.obs_space, tensorlib="torch"
-        )
+        # obs_dict = restore_original_dimensions(
+        #     obs=obs, obs_space=self.obs_space, tensorlib="torch"
+        # )
+        obs_dict = obs
         if state is None:
             self.state = self.get_initial_state() # batch_size=obs.shape[0])
         else:

@@ -68,9 +68,10 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         return (~dones).int() * discount_rate
 
     def _model_loss(self, model: ModelV2, train_batch: SampleBatch) -> Tuple[Dict[str, TensorType], TensorType]:
-        obs = restore_original_dimensions(
-            train_batch["obs"], self.observation_space.original_space, "torch"
-        )
+        # obs = restore_original_dimensions(
+        #     train_batch["obs"], self.observation_space.original_space, "torch"
+        # )
+        obs = train_batch["obs"]
         # PlaNET Model Loss
         latent = self.model.encoder(obs)
         post, prior = self.model.dynamics.observe(latent, train_batch["actions"])

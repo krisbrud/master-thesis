@@ -3,7 +3,7 @@ import gym_auv
 from gym_auv.objects.vessel.otter import Otter3DoF
 
 otter = Otter3DoF()
-
+# %%
 import numpy as np
 from scipy.integrate import odeint
 

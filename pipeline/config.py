@@ -89,6 +89,8 @@ def get_ray_tune_auv_dreamer_config(
         "use_occupancy": gym_auv_config.sensor.use_occupancy_grid,
         "occupancy_grid_shape": (2, 64, 64),
         "use_discount_prediction": True,
+        "use_kl_balancing": True,
+        "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
     }
 
     dreamer_config = {
@@ -127,7 +129,6 @@ def get_ray_tune_auv_dreamer_config(
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
         # }
-        "use_kl_balancing": True,
-        "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
+        
     }
     return dreamer_config
