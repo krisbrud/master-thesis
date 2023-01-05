@@ -376,10 +376,10 @@ class AuvDecoder(nn.Module):
 #     def forward(self, x: torch.TensorType) -> torch.TensorType:
         
 class MLP(nn.Module):
-    def __init__(self, input_size, hidden_size=400, output_size=400) -> None:
+    def __init__(self, input_size: int, hidden_size=400, output_size=400) -> None:
         super().__init__()
         self.layers = nn.Sequential(
-            Linear(1, hidden_size),
+            Linear(input_size, hidden_size),
             nn.ReLU(),
             Linear(hidden_size, hidden_size),
             nn.ReLU(),
@@ -389,6 +389,7 @@ class MLP(nn.Module):
         )
     
     def forward(self, x: torch.TensorType) -> torch.TensorType:
+        # print("x.shape", x.shape)
         return self.layers(x)
 
 
@@ -430,7 +431,8 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         #     use_occupancy_grid=self.use_occupancy_grid,
         # )
         embed_size = 400
-        self.encoder = MLP(self.action_size, self.hidden_size, embed_size)
+        obs_size = obs_space.shape[0]
+        self.encoder = MLP(obs_size, self.hidden_size, embed_size)
 
         # self.decoder = AuvDecoder(
         #     self.stoch_size + self.deter_size,
@@ -442,6 +444,8 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         #     use_lidar=self.use_lidar,
         #     use_occupancy_grid=self.use_occupancy_grid,
         # )
+        print("WARNING: Hard coded lidar shape in AuvDreamerModel")
+        self.decoder = DenseDecoder(self.stoch_size + self.deter_size, self.dense_size + 256, 3, self.hidden_size)
         
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
