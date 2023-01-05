@@ -348,6 +348,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
                 "model_loss": torch.mean(torch.stack(self.get_tower_stats("model_loss"))),
                 "reward_loss": torch.mean(torch.stack(self.get_tower_stats("reward_loss"))),
                 "image_loss": torch.mean(torch.stack(self.get_tower_stats("image_loss"))),
+                "discount_loss": torch.mean(torch.stack(self.get_tower_stats("discount_loss"))),
                 "divergence": torch.mean(torch.stack(self.get_tower_stats("divergence"))),
                 "actor_loss": torch.mean(torch.stack(self.get_tower_stats("actor_loss"))),
                 "critic_loss": torch.mean(torch.stack(self.get_tower_stats("critic_loss"))),
