@@ -99,12 +99,12 @@ def get_ray_tune_auv_dreamer_config(
         "batch_size": 50,
         "batch_length": 50,
         "imagine_horizon": 15,
-        "td_model_lr": 8e-6,  #  tune.loguniform(1e-4, 5e-3),
-        "actor_lr": 5e-5,  # tune.loguniform(1e-5, 5e-4),
-        "critic_lr": 5e-5,  # tune.loguniform(1e-5, 5e-4),
+        "td_model_lr": 5e-4,  #  tune.loguniform(1e-4, 5e-3),
+        "actor_lr": 8e-5,  # tune.loguniform(1e-5, 5e-4),
+        "critic_lr": 8e-5,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
         # "rollout_fragment_length": 16e3,
-        "normalize_actions": True, # tune.choice([True, False]),
+        "normalize_actions": False, #  True, # tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
         # Use the custom model
         "dreamer_model": model_options,
@@ -118,8 +118,8 @@ def get_ray_tune_auv_dreamer_config(
         # "evaluation_config": {
         #     "render_env": True,
         # },
-        "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
-        "explore_noise": 0.3, # 3, # tune.loguniform(1e-3, 5e-2),
+        "gamma": 0.999,  # tune.loguniform(0.9, 0.999),
+        "explore_noise": tune.choice([0.1, 0.2, 0.3]), #  0.3, # 3, # tune.loguniform(1e-3, 5e-2),
         "free_nats": 3,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
