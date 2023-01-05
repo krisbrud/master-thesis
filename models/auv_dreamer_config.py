@@ -90,8 +90,9 @@ class AuvDreamerConfig(AlgorithmConfig):
         self.imagine_horizon = 15
         self.free_nats = 3.0
         self.kl_coeff = 1.0
-        self.prefill_timesteps = 5000
+        self.prefill_timesteps = 100000
         self.explore_noise = 0.3
+
         self.dreamer_model = {
             "custom_model": DreamerModel,
             # RSSM/PlaNET parameters
@@ -105,26 +106,32 @@ class AuvDreamerConfig(AlgorithmConfig):
             "action_init_std": 5.0,
             
             # gym-auv specific settings
-            "dense_size": DEFAULT_CONFIG.vessel.dense_observation_size,
-            "lidar_shape": DEFAULT_CONFIG.vessel.lidar_shape,
-            "use_lidar": DEFAULT_CONFIG.vessel.use_lidar
+            "dense_decoder_scale": 1,  # Fixed scale parameter of gaussian in dense decoder 
+            "lidar_decoder_scale": 1,  # Same, but for lidar          
+
+            "dense_size": DEFAULT_CONFIG.sensor.dense_observation_size,
+            "lidar_shape": DEFAULT_CONFIG.sensor.lidar_shape,
+            "use_lidar": DEFAULT_CONFIG.sensor.use_lidar,
+            "use_occupancy": DEFAULT_CONFIG.sensor.use_occupancy_grid,
+            "occupancy_grid_shape": (2, DEFAULT_CONFIG.sensor.occupancy_grid_size, DEFAULT_CONFIG.sensor.occupancy_grid_size),
+            "use_discount_prediction": True,
         }
 
         # Override some of AlgorithmConfig's default values with PPO-specific values.
         # .rollouts()
         self.num_workers = 0
         self.num_envs_per_worker = 1
-        self.horizon = 1000
+        self.horizon = 10000
         self.batch_mode = "complete_episodes"
         self.clip_actions = False
 
         # .training()
-        self.gamma = 0.99
+        self.gamma = 0.9 # 99
 
         # .environment()
         self.env_config = {
             # Repeats action send by policy for frame_skip times in env
-            "frame_skip": 2,
+            "frame_skip": 1,
         }
 
         # __sphinx_doc_end__

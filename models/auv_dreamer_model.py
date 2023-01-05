@@ -3,7 +3,9 @@
 
 # import torch
 import math
-from turtle import forward
+# from turtle import forward
+import gym
+import gym.spaces
 from typing import Any, Dict, Tuple, List, Union
 import torch
 from torch import nn
@@ -21,7 +23,13 @@ from ray.rllib.algorithms.dreamer.utils import (
     GRUCell,
     TanhBijector,
 )
-from ray.rllib.algorithms.dreamer.dreamer_model import DenseDecoder, RSSM, ActionDecoder
+from ray.rllib.algorithms.dreamer.dreamer_model import (
+    DenseDecoder,
+    RSSM,
+    ActionDecoder,
+    ConvEncoder,
+    ConvDecoder,
+)
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.models.modelv2 import restore_original_dimensions
 
@@ -31,7 +39,7 @@ from models.unflatten_obs import unflatten_obs
 ActFunc = Any
 
 # Encoder, part of PlaNET
-class AuvConvEncoder(nn.Module):
+class AuvConvEncoder1D(nn.Module):
     """Standard Convolutional Encoder for Dreamer. This encoder is used
     to encode images frm an enviornment into a latent state for the
     RSSM model in PlaNET.
@@ -61,13 +69,17 @@ class AuvConvEncoder(nn.Module):
         self.layers = [
             # Add circular padding in first layer, essentially keeping the circular physical
             # structure of the model, avoiding a "seam"
-            Conv1d(init_channels, self.depth, 4, stride=2, padding_mode="circular"),
+            Conv1d(init_channels, self.depth * 2, 4, stride=2), #, padding_mode="circular"),
             self.act(),
-            Conv1d(self.depth, 2 * self.depth, 4, stride=2),
+            Conv1d(self.depth * 2, self.depth * 4, 4, stride=2),
             self.act(),
-            Conv1d(2 * self.depth, 4 * self.depth, 4, stride=2),
+            Conv1d(self.depth * 4, self.depth * 8, 4, stride=2),
             self.act(),
-            Conv1d(4 * self.depth, 8 * self.depth, 4, stride=2),
+            Conv1d(self.depth * 8, self.depth * 8, 4, stride=2),
+            self.act(),
+            Conv1d(self.depth * 8, self.depth * 8, 4, stride=2),
+            self.act(),
+            Conv1d(self.depth * 8, self.depth * 16, 4, stride=2),
             self.act(),
         ]
         self.model = nn.Sequential(*self.layers)
@@ -96,62 +108,109 @@ class AuvEncoder(nn.Module):
     """Joint encoder for proprioceptive and lidar observations in gym_auv"""
 
     def __init__(
-        self, dense_size: int, lidar_shape: Tuple[int, int], use_lidar: bool = True
+        self,
+        dense_size: int,
+        lidar_shape: Tuple[int, int],
+        occupancy_grid_shape: Tuple[int, int, int],
+        obs_space: gym.spaces.Space,
+        hidden_size: int,
+        use_lidar: bool = True,
+        use_occupancy_grid: bool = False,
     ):
         super().__init__()
         self.lidar_shape = lidar_shape
         self.dense_size = dense_size
         self.use_lidar = use_lidar
-
+        self.use_occupancy_grid = use_occupancy_grid
+        self.occupancy_grid_shape = occupancy_grid_shape
         # if self.use_lidar:
         #     self.flattened_size = self.dense_size + lidar_shape[0] * lidar_shape[1]
         # else:
         #     self.flattened_size = self.dense_size
 
-        self.nav_hidden_size = 64
-        self.nav_output_size = 32
-        self.hidden_output_size = 1024
+        self.nav_hidden_size = hidden_size
+        self.nav_output_size = 32 
+        # self.hidden_output_size = 1024 + self.nav_output_size
 
         if self.use_lidar:
-            self.lidar_encoder = AuvConvEncoder(shape=lidar_shape)
-            self.lidar_encoded_size = (
-                256 * 9
-            )  # TODO: Refactor so this is given as argument
+            if self.use_occupancy_grid:
+                self.lidar_encoder = ConvEncoder(shape=self.occupancy_grid_shape)
+                self.lidar_encoded_size = 1024  # Always depth**2 = 32 ** 2 = 1024
+            else:
+                self.lidar_encoder = AuvConvEncoder1D(shape=lidar_shape)
+                self.lidar_encoded_size = (
+                    1024
+                )  # TODO: Refactor so this is given as argument
         else:
             self.lidar_encoder = None
             self.lidar_encoded_size = 0
 
         self.navigation_encoder = nn.Sequential(
             Linear(self.dense_size, self.nav_hidden_size),
-            nn.ReLU(),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
+            Linear(self.nav_hidden_size, self.nav_hidden_size),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
+            Linear(self.nav_hidden_size, self.nav_hidden_size),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
+            Linear(self.nav_hidden_size, self.nav_hidden_size),
+            # nn.ELU(),
+            # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_output_size),
+            # Linear(self.dense_size, self.nav_output_size)
         )
-        self.joint_head = nn.Sequential(
-            Linear(
-                self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
-            )
-        )
+        lidar_flat_size = math.prod(self.lidar_shape)
+        self.output_size = self.nav_output_size + self.lidar_encoded_size
+
+        # self.joint_head = nn.Sequential(
+        #     # Linear(
+        #     #     self.nav_output_size + self.lidar_encoded_size, self.hidden_output_size
+        #     # )
+        #     Linear(
+        #         self.dense_size + lidar_flat_size, self.hidden_output_size 
+        #     )
+        # )
 
     def forward(self, x: Dict[str, TensorType]) -> TensorType:
         if self.use_lidar:
-            nav_obs, lidar_obs = unflatten_obs(
-                x, lidar_shape=self.lidar_shape, dense_size=self.dense_size
-            )
+            # nav_obs, lidar_obs = unflatten_obs(
+            #     x, lidar_shape=self.lidar_shape, dense_size=self.dense_size
+            # )
+            nav_obs = x["dense"]
+            if self.use_occupancy_grid:
+                lidar_obs = x["occupancy"]
+            else:
+                lidar_obs = x["lidar"]
+
             nav_latents = self.navigation_encoder(nav_obs)
 
             lidar_latents = self.lidar_encoder(lidar_obs)
+
+            if lidar_latents.isnan().any():
+                print("Lidar latents contains NaNs")
+                breakpoint()
+
             latents = torch.cat((nav_latents, lidar_latents), dim=-1)
+            
+            # Squeeze in order to remove 1-dim from (1, n_lidars)
+            # Concat along observation dim
+            # latents = torch.cat((nav_obs, lidar_obs.squeeze(-2)), dim=1) 
+            # return raw_outputs
         else:
             latents = self.navigation_encoder(x)
+            # latents = nav_obs
 
-        out = self.joint_head(latents)
+        # out = self.joint_head(latents)
 
-        return out
+        # return out
+        return latents
 
 
 # Decoder, part of PlaNET
 # class ConvDecoder(nn.Module):
-class AuvConvDecoder(nn.Module):
+class AuvConvDecoder1d(nn.Module):
     """Standard Convolutional Decoder for Dreamer.
     This decoder is used to decode images from the latent state generated
     by the transition dynamics model. This is used in calculating loss and
@@ -161,7 +220,7 @@ class AuvConvDecoder(nn.Module):
     def __init__(
         self,
         input_size: int,
-        output_shape: Tuple[int],
+        output_shape: Tuple[int, int],
         depth: int = 32,
         act: ActFunc = None,
     ):
@@ -187,7 +246,9 @@ class AuvConvDecoder(nn.Module):
             self.act(),
             ConvTranspose1d(8 * self.depth, 4 * self.depth, 5, stride=2),
             self.act(),
-            ConvTranspose1d(4 * self.depth, 2 * self.depth, 6, stride=3),
+            ConvTranspose1d(4 * self.depth, 4 * self.depth, 5, stride=2),
+            self.act(),
+            ConvTranspose1d(4 * self.depth, 2 * self.depth, 5, stride=2),
             self.act(),
             ConvTranspose1d(2 * self.depth, self.depth, 6, stride=2),
             self.act(),
@@ -211,44 +272,109 @@ class AuvConvDecoder(nn.Module):
         return mean
 
 
+
 class AuvDecoder(nn.Module):
     def __init__(
         self,
         input_size: int,
         dense_size: int,
         lidar_shape: Tuple[int, int],
+        occupancy_grid_shape: Tuple[int, int, int],
+        dense_decoder_scale: float,
+        lidar_decoder_scale: float,
         use_lidar: bool = True,
+        use_occupancy_grid: bool = False,
     ) -> None:
         super().__init__()
 
-        self.input_size = input_size
         self.lidar_shape = lidar_shape
         self.use_lidar = use_lidar
+        self.dense_size = dense_size
+        self.input_size = input_size
+        self.dense_decoder_scale = dense_decoder_scale
+        self.lidar_decoder_scale = lidar_decoder_scale
+        self.dense_hidden_size = 400
+        self.n_dense_layers = 4
 
+        self.use_occupancy_grid = use_occupancy_grid
+        self.occupancy_grid_shape = occupancy_grid_shape
+        self.output_size = self.dense_size
         if self.use_lidar:
-            self.lidar_decoder = AuvConvDecoder(input_size, output_shape=lidar_shape)
+            if self.use_occupancy_grid:
+                self.output_size += math.prod(self.occupancy_grid_shape)
+                self.lidar_decoder = ConvDecoder(input_size=input_size, shape=self.occupancy_grid_shape)  # type: ignore
+            else:
+                self.output_size += math.prod(self.lidar_shape)
+                # self.lidar_decoder = nn.Sequential(
+                #     Linear(input_size, 64),
+                #     nn.ReLU(),
+                #     Linear(64, 180)
+                # )
+                self.lidar_decoder = AuvConvDecoder1d(
+                    input_size, output_shape=lidar_shape
+                )
         else:
             self.lidar_decoder = None
-        self.navigation_decoder = nn.Sequential(
-            Linear(self.input_size, 64), nn.ELU(), Linear(64, dense_size)
-        )
 
-    def forward(self, x):
+        navigation_decoder_layers = [
+            Linear(self.input_size, self.dense_hidden_size),
+        ]
+        for i in range(self.n_dense_layers):
+            navigation_decoder_layers.extend([
+                Linear(self.dense_hidden_size, self.dense_hidden_size),
+                nn.LayerNorm(self.dense_hidden_size),
+                nn.ELU(),
+            ])
+        navigation_decoder_layers.append(Linear(self.dense_hidden_size, dense_size))
+        self.navigation_decoder = nn.Sequential(*navigation_decoder_layers)
+
+    def forward(self, x: torch.TensorType):
         leading_shape = x.shape[:-1]
         navigation_reconstruction = self.navigation_decoder(x)
 
         if self.use_lidar:
             lidar_reconstruction = self.lidar_decoder(x)
+            if isinstance(lidar_reconstruction, torch.distributions.Independent):
+                # Take care of case where we use the ConvEncoder from RLlib as the occupancy decoder,
+                # s.t. the mean of lidar_reconstruction needs to be extracted. 
+                lidar_reconstruction = lidar_reconstruction.mean
+            
+            flat_lidar_reconstruction = lidar_reconstruction.view((*leading_shape, -1))
+            
             raw_mean = torch.cat(
-                (navigation_reconstruction, lidar_reconstruction), dim=-1
+                (navigation_reconstruction, flat_lidar_reconstruction), dim=-1
             )
         else:
             raw_mean = navigation_reconstruction
 
         mean = raw_mean.view((*leading_shape, -1))
-        scale = 5e-3
-        output_dist = td.Normal(mean, scale)
+
+        scale = torch.ones(self.output_size).to(x.device)
+        scale[: self.dense_size] = self.dense_decoder_scale
+        scale[self.dense_size :] = self.lidar_decoder_scale
+        output_dist = td.Independent(td.Normal(mean, scale), 1)
         return output_dist
+
+# class DiscountDecoder(nn.Module):
+#     def __init__(self, input_size: int, hidden_size: int):
+#         self.input_size = input_size
+#         self.hidden_size = hidden_size
+        
+#         self.layers = nn.Sequential(
+#             Linear(input_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, hidden_size),
+#             nn.ReLU(),
+#             Linear(hidden_size, 1)
+#         )
+#         self.dist =
+
+#     def forward(self, x: torch.TensorType) -> torch.TensorType:
+        
 
 
 # Represents all models in Dreamer, unifies them all into a single interface
@@ -267,34 +393,67 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.dense_size = model_config["dense_size"]
         self.lidar_shape = model_config["lidar_shape"]
         self.use_lidar = model_config["use_lidar"]
+        self.use_occupancy_grid = model_config["use_occupancy"]
+        self.occupancy_grid_shape = model_config["occupancy_grid_shape"]
+
+        self.dense_decoder_scale = model_config[
+            "dense_decoder_scale"
+        ]  # Fixed scale parameter of gaussian in dense decoder
+        self.lidar_decoder_scale = model_config[
+            "lidar_decoder_scale"
+        ]  # Same, but for lidar
 
         self.action_size = action_space.shape[0]
 
-        # self.encoder = AuvConvEncoder(self.depth)
         self.encoder = AuvEncoder(
-            self.dense_size, self.lidar_shape, use_lidar=self.use_lidar
+            self.dense_size,
+            self.lidar_shape,
+            self.occupancy_grid_shape,
+            hidden_size=self.hidden_size,
+            obs_space=self.obs_space,
+            use_lidar=self.use_lidar,
+            use_occupancy_grid=self.use_occupancy_grid,
         )
         self.decoder = AuvDecoder(
             self.stoch_size + self.deter_size,
             self.dense_size,
             self.lidar_shape,
+            self.occupancy_grid_shape,
+            dense_decoder_scale=self.dense_decoder_scale,
+            lidar_decoder_scale=self.lidar_decoder_scale,
             use_lidar=self.use_lidar,
+            use_occupancy_grid=self.use_occupancy_grid,
         )
+        
         self.reward = DenseDecoder(
-            self.stoch_size + self.deter_size, 1, 2, self.hidden_size
+            self.stoch_size + self.deter_size, 1, 3, self.hidden_size
         )
+
+        embed_size = self.encoder.output_size
         self.dynamics = RSSM(
             self.action_size,
-            32 * self.depth,
+            embed_size,
+            # 32 * self.depth,
+            # 1024 + 32,
             stoch=self.stoch_size,
             deter=self.deter_size,
         )
         self.actor = ActionDecoder(
-            self.stoch_size + self.deter_size, self.action_size, 4, self.hidden_size
+            self.stoch_size + self.deter_size,
+            self.action_size,
+            4,
+            self.hidden_size,
+            # mean_scale=2.0, # Default: 5
+            act=nn.ELU,
         )
         self.value = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
         )
+
+        self.discount = DenseDecoder(
+            self.stoch_size + self.deter_size, 1, 4, self.hidden_size, dist="binary"
+        )
+
         self.state = None
 
         self.device = (
@@ -307,17 +466,25 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         """Returns the action. Runs through the encoder, recurrent model,
         and policy to obtain action.
         """
+        obs_dict = restore_original_dimensions(
+            obs=obs, obs_space=self.obs_space, tensorlib="torch"
+        )
         if state is None:
-            self.state = self.get_initial_state(batch_size=obs.shape[0])
+            self.state = self.get_initial_state() # batch_size=obs.shape[0])
         else:
             self.state = state
         # TODO: Make clearer why this slicing is done
         post = self.state[:4]
         action = self.state[4]
 
-        # obs = restore_original_dimensions(obs, self.obs_space, "torch")
-        embed = self.encoder(obs)
+        embed = self.encoder(obs_dict)
+        # breakpoint()
+        # try:
         post, _ = self.dynamics.obs_step(post, action, embed)
+        # except:
+            # embed has nans
+
+            # breakpoint()
         feat = self.dynamics.get_feature(post)
 
         action_dist = self.actor(feat)

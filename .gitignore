@@ -5,5 +5,9 @@ profiler*
 TODO.md
 
 # Ignore video files from recorder
-*.mp4
+**/*.mp4
 results/*
+playground/videos/*
+
+# Ignore checkpoints in playground
+playground/checkpoint*

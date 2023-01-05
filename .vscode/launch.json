@@ -11,7 +11,11 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "env": {
+                "WANDB_PROJECT": "auv-dreamer-debug",
+                "WANDB_API_KEY": "{env:WANDB_API_KEY}"
+            }
         },
         {
             "name": "Python: Hello gym-auv",
@@ -27,8 +31,21 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": false
+            "justMyCode": false,
+            "env": {
+                "WANDB_PROJECT": "auv-dreamer-debug",
+                "WANDB_API_KEY": "{env:WANDB_API_KEY}"
+            }
+            
         },
-
+        {
+            "name": "Python: Current File - pick process",
+            "type": "python",
+            "request": "attach",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "processId": "${command:pickProcess}"
+        },
     ]
 }

@@ -60,7 +60,7 @@ def train():
 
     # Create our RLlib Trainer.
     # algo = PPO(config=config)
-    algo = Dreamer(env=env_name, config=config)  # , config=config)
+    algo = Dreamer(env=env_name, config=config)
 
     # Run it for n training iterations. A training iteration includes
     # parallel sample collection by the environment workers as well as

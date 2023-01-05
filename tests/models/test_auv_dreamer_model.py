@@ -5,14 +5,15 @@ import pytest
 from models.auv_dreamer import _get_auv_dreamer_model_options
 
 from models.auv_dreamer_model import (
-    AuvConvDecoder,
-    AuvConvEncoder,
+    AuvConvDecoder1d,
+    AuvConvEncoder1D,
     AuvDecoder,
     AuvDreamerModel,
     AuvEncoder,
 )
 
 import gym_auv
+from gym_auv.envs.testscenario import TestScenario1
 from gym_auv import Config
 
 # from ray.rllib.algorithms.dreamer import DreamerConfig
@@ -21,12 +22,12 @@ from gym_auv import Config
 # from ray.rllib.algorithms.dreamer.utils import Linear
 # from ray.rllib.models.torch.misc import Reshape
 import gym
-from models.config import get_auv_dreamer_config_dict
+from pipeline.config import get_auv_dreamer_config_dict
 
 from tests.models.model_utils import (
-    _get_lidar_shape,
-    _get_rssm_feature_size,
-    _get_dense_size,
+    get_lidar_shape,
+    get_rssm_feature_size,
+    get_dense_size,
 )
 
 # TODO: Test encoder for different batch sizes
@@ -35,14 +36,15 @@ def test_conv_encoder(batch_size):
     # Make a encoder, check that it passes data of the correct dimensions
     # and supports backprop
     default_config = Config()
-    lidar_shape = _get_lidar_shape()
+    lidar_shape = get_lidar_shape()
     batched_shape = (batch_size, *lidar_shape)
     print(f"{batched_shape = }")
 
-    encoder = AuvConvEncoder(shape=lidar_shape)
+    encoder = AuvConvEncoder1D(shape=lidar_shape)
     random_lidar_input = torch.rand(batched_shape)
 
     latent_embedding = encoder.forward(random_lidar_input)
+    # assert latent_embedding.shape == (1, 2), f"{latent_embedding.shape = }"
     print(f"{latent_embedding.shape = }")
 
 
@@ -67,33 +69,50 @@ def _make_mock_input(
 def _mock_input(batch_size, input_size) -> torch.Tensor:
     return torch.rand((batch_size, input_size))
 
+@pytest.fixture
+def occupancy_grid_shape() -> Tuple[int,int,int]:
+    return (2, 64, 64)
 
 @pytest.mark.parametrize("batch_size", [1, 7])
-def test_encoder(batch_size):
-    lidar_shape = _get_lidar_shape()
-    dense_size = _get_dense_size()
-    encoder = AuvEncoder(dense_size, lidar_shape)
+def test_encoder(batch_size, occupancy_grid_shape):
+    lidar_shape = get_lidar_shape()
+    dense_size = get_dense_size()
+    mock_env = TestScenario1(gym_auv.DEFAULT_CONFIG)
+    obs_space = mock_env.observation_space
+    encoder = AuvEncoder(dense_size=dense_size, 
+        lidar_shape=lidar_shape, 
+        occupancy_grid_shape=occupancy_grid_shape, 
+        obs_space=obs_space,
+        hidden_size=400,
+        use_lidar=True,
+        use_occupancy_grid=False,
+        )
 
-    input_size = dense_size + math.prod(lidar_shape)
-    mock_input = _mock_input(batch_size=batch_size, input_size=input_size)
+    # input_size = dense_size + math.prod(lidar_shape)
+    # mock_input = _mock_input(batch_size=batch_size, input_size=input_size)
     # mock_input = _make_mock_input(
     #     batch_size=batch_size,
     #     n_proprio_states=navigation_shape[0],
     #     lidar_shape=lidar_shape,
     # )
-    encoder(mock_input)
+    mock_input = {
+        "dense": torch.rand((batch_size, dense_size)),
+        "lidar": torch.rand((batch_size, *lidar_shape)),
+    }
+    embedding = encoder(mock_input)
+    # assert embedding.shape == (1, 1024), f"{embedding.shape = }, not the expected!"
 
 
 @pytest.mark.parametrize("batch_size", [1, 7])
 def test_conv_decoder(batch_size):
     # Make a reconstructive decoder, check that it passes data of the correct dimensions
     # and supports backprop
-    n_rssm_features = _get_rssm_feature_size()
+    n_rssm_features = get_rssm_feature_size()
     mock_latent_embedding = torch.rand((batch_size, n_rssm_features))
 
-    lidar_shape = _get_lidar_shape()
+    lidar_shape = get_lidar_shape()
 
-    decoder = AuvConvDecoder(n_rssm_features, output_shape=lidar_shape)
+    decoder = AuvConvDecoder1d(n_rssm_features, output_shape=lidar_shape)
     reconstruction = decoder.forward(mock_latent_embedding)
 
     assert isinstance(reconstruction, torch.Tensor)
@@ -113,7 +132,7 @@ def _make_mock_auv_env() -> gym.Env:
 
 @pytest.fixture
 def latent_size() -> int:
-    return 240
+    return 230
 
 
 @pytest.fixture
@@ -128,10 +147,11 @@ def _latents(request, latent_size):
     return latents
 
 
-def test_decoder(latents, latent_size):
-    dense_size = _get_dense_size()
-    lidar_shape = _get_lidar_shape()
-    decoder = AuvDecoder(latent_size, dense_size, lidar_shape)
+def test_decoder(latents, latent_size, occupancy_grid_shape):
+    dense_size = get_dense_size()
+    lidar_shape = get_lidar_shape()
+    mock_scale = 1e-3
+    decoder = AuvDecoder(latent_size, dense_size, lidar_shape, occupancy_grid_shape, mock_scale, mock_scale, use_lidar=True)
     out = decoder(latents)
 
 
