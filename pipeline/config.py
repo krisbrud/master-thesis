@@ -26,7 +26,9 @@ def _get_auv_dreamer_model_options(config: gym_auv.Config) -> dict:
         "action_init_std": 5.0,
         "use_lidar": config.sensor.use_lidar,
         "use_occupancy": config.sensor.use_occupancy_grid,
-        "occupancy_grid_shape": (2, 64, 64)
+        "occupancy_grid_shape": (2, 64, 64),
+        "use_kl_balancing": True,
+        "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
     }
     return model_config
 
@@ -55,6 +57,7 @@ def get_auv_dreamer_config_dict(env_name: str, gym_auv_config: gym_auv.Config) -
         "gamma": 0.99,
         "explore_noise": 1e-3,
         "free_nats": 3,
+        
     }
     return dreamer_config
 
@@ -109,7 +112,7 @@ def get_ray_tune_auv_dreamer_config(
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": 5e3,  # 50e3, # 25e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
+        "prefill_timesteps": 50e3,  # 50e3, # 25e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",
@@ -120,9 +123,11 @@ def get_ray_tune_auv_dreamer_config(
         # },
         "gamma": 0.999,  # tune.loguniform(0.9, 0.999),
         "explore_noise": tune.choice([0.1, 0.2, 0.3]), #  0.3, # 3, # tune.loguniform(1e-3, 5e-2),
-        "free_nats": 3,  # tune.loguniform(1e-4, 5),
+        "free_nats": 1,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
         # }
+        "use_kl_balancing": True,
+        "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
     }
     return dreamer_config

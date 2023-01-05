@@ -91,9 +91,24 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # discount_loss = -torch.mean(discount_pred.log_prob(TODO))
         prior_dist = self.model.dynamics.get_dist(prior[0], prior[1])
         post_dist = self.model.dynamics.get_dist(post[0], post[1])
-        div = torch.mean(
-            torch.distributions.kl_divergence(post_dist, prior_dist).sum(dim=2)
-        )
+
+        if self.config["dreamer_model"]["use_kl_balancing"]:
+            prior_dist_no_grad = self.model.dynamics.get_dist(prior[0].detach(), prior[1].detach())
+            post_dist_no_grad = self.model.dynamics.get_dist(post[0].detach(), post[1].detach())
+
+            div_no_prior_grad = torch.mean(
+                torch.distributions.kl_divergence(post_dist_no_grad, prior_dist_no_grad).sum(dim=2)
+            )
+            div_no_post_grad = torch.mean(
+                torch.distributions.kl_divergence(post_dist, prior_dist_no_grad).sum(dim=2)
+            )
+            alpha = self.config["dreamer_model"]["kl_balancing_alpha"]
+            div = alpha * div_no_post_grad + (1 - alpha) * div_no_prior_grad
+        else:
+            div = torch.mean(
+                torch.distributions.kl_divergence(post_dist, prior_dist).sum(dim=2)
+            )
+        
         div = torch.clamp(div, min=(self.config["free_nats"]))
         model_loss = self.config["kl_coeff"] * div + reward_loss + image_loss + discount_loss
 

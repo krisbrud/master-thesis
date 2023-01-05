@@ -129,14 +129,14 @@ class AuvDreamer(Algorithm):
         # Run multiple sub-iterations for each training iteration.
         # breakpoint()
         print("Starting training iteration!")
-        n_dones = []
+        # n_dones = []
         for n in range(dreamer_train_iters):
             # print(f"sub-iteration={n}/{dreamer_train_iters}")
             batch = self.local_replay_buffer.sample(batch_size)
-            n_dones.append(batch["dones"].sum())
+            # n_dones.append(batch["dones"].sum())
             fetches = local_worker.learn_on_batch(batch)
         print("Training iteration done!")
-        print(n_dones)
+        # print(n_dones)
 
         if fetches:
             # Custom logging.
