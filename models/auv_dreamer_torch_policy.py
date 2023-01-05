@@ -184,8 +184,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             reward = self.model.reward(imag_feat).mean
             value = self.model.value(imag_feat).mean
             # if config["use_discount_prediction"]
-            discount = self.model.discount(imag_feat).mean
+            discount = self.model.discount(imag_feat).mean * self.config["gamma"]
             
+            # We predict whether this timestep is done, i.e. if the next will be 
             # Pad discount prediction with actual values for first time step
             first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1).float()  # shape: (1, batch_size)
             
