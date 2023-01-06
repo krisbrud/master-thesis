@@ -147,16 +147,16 @@ class AuvEncoder(nn.Module):
 
         self.navigation_encoder = nn.Sequential(
             Linear(self.dense_size, self.nav_hidden_size),
-            # nn.ELU(),
+            nn.ELU(),
             # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_hidden_size),
-            # nn.ELU(),
+            nn.ELU(),
             # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_hidden_size),
-            # nn.ELU(),
+            nn.ELU(),
             # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_hidden_size),
-            # nn.ELU(),
+            nn.ELU(),
             # nn.LayerNorm(self.nav_hidden_size),
             Linear(self.nav_hidden_size, self.nav_output_size),
             # Linear(self.dense_size, self.nav_output_size)
