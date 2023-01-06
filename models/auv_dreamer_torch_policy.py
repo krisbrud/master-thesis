@@ -196,6 +196,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             imag_feat = self.model.imagine_ahead(
                 actor_states, self.config["imagine_horizon"]
             )
+
+            # Give a bonus for higher entropy in the policy
+            entropy_loss = -torch.mean(model.actor(imag_feat).base_dist.base_dist.entropy()) * self.config["dreamer_model"]["entropy_coeff"]
         with FreezeParameters(model_weights + critic_weights):
             reward = self.model.reward(imag_feat).mean
             value = self.model.value(imag_feat).mean
@@ -261,7 +264,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         # breakpoint()
 
-        actor_loss = -torch.mean(discount_cumprod[:-1] * returns)
+        actor_loss = -torch.mean(discount_cumprod[:-1] * returns) + entropy_loss
 
         # Critic Loss
         with torch.no_grad():

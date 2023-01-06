@@ -520,8 +520,12 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.state = post + [action]
         return action, logp, self.state
 
-    def imagine_ahead(self, state: List[TensorType], horizon: int) -> TensorType:
-        """Given a batch of states, rolls out more state of length horizon."""
+    def imagine_ahead(self, state: List[TensorType], horizon: int, return_actions=False) -> TensorType:
+        """Given a batch of states, rolls out more state of length horizon.
+        
+        return_actions (bool): If True, returns the actions taken as well. 
+        This may be used for calculating entropy etc.
+        """
         start = []
         for s in state:
             s = s.contiguous().detach()
@@ -533,16 +537,38 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             action = self.actor(feature).rsample()
             next_state = self.dynamics.img_step(state, action)
             return next_state
+        
+    
+        def next_state_return_action(state):
+            feature = self.dynamics.get_feature(state).detach()
+            action = self.actor(feature).rsample()
+            next_state = self.dynamics.img_step(state, action)
+            return next_state, action
+
 
         last = start
         outputs = [[] for i in range(len(start))]
+        actions = []
         for _ in range(horizon):
+            if return_actions:
+                last, action = next_state_return_action(last)
+                actions.append(action)
+            else:
+                last = next_state(last)
+            
             last = next_state(last)
             [o.append(s) for s, o in zip(last, outputs)]
         outputs = [torch.stack(x, dim=0) for x in outputs]
 
+        # breakpoint()
+
         imag_feat = self.dynamics.get_feature(outputs)
-        return imag_feat
+        
+        if return_actions:
+            actions = torch.stack(actions, dim=0)
+            return imag_feat, actions
+        else:
+            return imag_feat
 
     def get_initial_state(self) -> List[TensorType]:
         self.state = self.dynamics.get_initial_state(1) + [
