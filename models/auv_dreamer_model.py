@@ -421,31 +421,31 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
 
         self.action_size = action_space.shape[0]
 
-        # self.encoder = AuvEncoder(
-        #     self.dense_size,
-        #     self.lidar_shape,
-        #     self.occupancy_grid_shape,
-        #     hidden_size=self.hidden_size,
-        #     obs_space=self.obs_space,
-        #     use_lidar=self.use_lidar,
-        #     use_occupancy_grid=self.use_occupancy_grid,
-        # )
+        self.encoder = AuvEncoder(
+            self.dense_size,
+            self.lidar_shape,
+            self.occupancy_grid_shape,
+            hidden_size=self.hidden_size,
+            obs_space=self.obs_space,
+            use_lidar=self.use_lidar,
+            use_occupancy_grid=self.use_occupancy_grid,
+        )
         embed_size = 400
-        obs_size = obs_space.shape[0]
-        self.encoder = MLP(obs_size, self.hidden_size, embed_size)
+        # obs_size = obs_space.shape[0]
+        # self.encoder = MLP(obs_size, self.hidden_size, embed_size)
 
-        # self.decoder = AuvDecoder(
-        #     self.stoch_size + self.deter_size,
-        #     self.dense_size,
-        #     self.lidar_shape,
-        #     self.occupancy_grid_shape,
-        #     dense_decoder_scale=self.dense_decoder_scale,
-        #     lidar_decoder_scale=self.lidar_decoder_scale,
-        #     use_lidar=self.use_lidar,
-        #     use_occupancy_grid=self.use_occupancy_grid,
-        # )
-        print("WARNING: Hard coded lidar shape in AuvDreamerModel")
-        self.decoder = DenseDecoder(self.stoch_size + self.deter_size, self.dense_size + 256, 3, self.hidden_size)
+        self.decoder = AuvDecoder(
+            self.stoch_size + self.deter_size,
+            self.dense_size,
+            self.lidar_shape,
+            self.occupancy_grid_shape,
+            dense_decoder_scale=self.dense_decoder_scale,
+            lidar_decoder_scale=self.lidar_decoder_scale,
+            use_lidar=self.use_lidar,
+            use_occupancy_grid=self.use_occupancy_grid,
+        )
+        # print("WARNING: Hard coded lidar shape in AuvDreamerModel")
+        # self.decoder = DenseDecoder(self.stoch_size + self.deter_size, self.dense_size + 256, 3, self.hidden_size)
         
         self.reward = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
