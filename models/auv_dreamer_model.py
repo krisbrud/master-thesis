@@ -162,7 +162,7 @@ class AuvEncoder(nn.Module):
             # Linear(self.dense_size, self.nav_output_size)
         )
         lidar_flat_size = math.prod(self.lidar_shape)
-        self.output_size = self.nav_output_size + self.lidar_encoded_size
+        self.output_size = self.nav_output_size + self.lidar_encoded_size + self.dense_size
 
         # self.joint_head = nn.Sequential(
         #     # Linear(
@@ -188,11 +188,13 @@ class AuvEncoder(nn.Module):
 
             lidar_latents = self.lidar_encoder(lidar_obs)
 
-            if lidar_latents.isnan().any():
-                print("Lidar latents contains NaNs")
-                breakpoint()
+            # if lidar_latents.isnan().any():
+            #     print("Lidar latents contains NaNs")
+            #     breakpoint()
 
-            latents = torch.cat((nav_latents, lidar_latents), dim=-1)
+            # Concatenate the encoded lidar and navigation latents, as well as the
+            # raw navigation observations
+            latents = torch.cat((nav_latents, nav_obs, lidar_latents), dim=-1)
             
             # Squeeze in order to remove 1-dim from (1, n_lidars)
             # Concat along observation dim
