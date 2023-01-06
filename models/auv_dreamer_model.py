@@ -194,7 +194,7 @@ class AuvEncoder(nn.Module):
 
             # Concatenate the encoded lidar and navigation latents, as well as the
             # raw navigation observations
-            latents = torch.cat((nav_latents, nav_obs, lidar_latents), dim=-1)
+            latents = torch.cat((nav_latents, lidar_latents), dim=-1)
             
             # Squeeze in order to remove 1-dim from (1, n_lidars)
             # Concat along observation dim
