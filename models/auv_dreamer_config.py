@@ -75,7 +75,7 @@ class AuvDreamerConfig(AlgorithmConfig):
 
     def __init__(self):
         """Initializes a PPOConfig instance."""
-        super().__init__(algo_class=Dreamer)
+        super().__init__(algo_class="Dreamer")
 
         # fmt: off
         # __sphinx_doc_begin__
