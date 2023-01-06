@@ -16,7 +16,7 @@ def test_auv_dreamer_initialization():
     dreamer_config = get_auv_dreamer_config_dict(
         env_name=env_name, gym_auv_config = gym_auv_config
     )
-    dreamer_config["prefill_timesteps"] = 0
+    dreamer_config["prefill_timesteps"] = 0  # Avoid expensive environment sampling for this test
     if cuda.is_available():
         dreamer_config["num_gpus"] = 1 
     # Make a Dreamer instance
