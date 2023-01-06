@@ -430,7 +430,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             use_lidar=self.use_lidar,
             use_occupancy_grid=self.use_occupancy_grid,
         )
-        embed_size = 400
+        # embed_size = 400
         # obs_size = obs_space.shape[0]
         # self.encoder = MLP(obs_size, self.hidden_size, embed_size)
 
@@ -451,7 +451,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
         )
 
-        # embed_size = self.encoder.output_size
+        embed_size = self.encoder.output_size
         self.dynamics = RSSM(
             self.action_size,
             embed_size,
@@ -488,10 +488,10 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         """Returns the action. Runs through the encoder, recurrent model,
         and policy to obtain action.
         """
-        # obs_dict = restore_original_dimensions(
-        #     obs=obs, obs_space=self.obs_space, tensorlib="torch"
-        # )
-        obs_dict = obs
+        obs_dict = restore_original_dimensions(
+            obs=obs, obs_space=self.obs_space, tensorlib="torch"
+        )
+        # obs_dict = obs
         if state is None:
             self.state = self.get_initial_state() # batch_size=obs.shape[0])
         else:
