@@ -120,7 +120,7 @@ class AuvDreamerConfig(AlgorithmConfig):
             "use_kl_balancing": True,
             "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
 
-            "entropy_coeff": 0.01,  # Coefficient for actor entropy bonus
+            "entropy_coeff": 0.005,  # Coefficient for actor entropy bonus
         }
 
         # Override some of AlgorithmConfig's default values with PPO-specific values.
