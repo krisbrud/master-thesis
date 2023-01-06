@@ -162,7 +162,7 @@ class AuvEncoder(nn.Module):
             # Linear(self.dense_size, self.nav_output_size)
         )
         lidar_flat_size = math.prod(self.lidar_shape)
-        self.output_size = self.nav_output_size + self.lidar_encoded_size + self.dense_size
+        self.output_size = self.nav_output_size + self.lidar_encoded_size # + self.dense_size
 
         # self.joint_head = nn.Sequential(
         #     # Linear(
