@@ -103,6 +103,8 @@ def get_ray_tune_auv_dreamer_config(
 
         "batch_size": 50,
         "batch_length": 50,
+        "horizon": 2500,  # After horizon time steps, the environment is reset
+        "no_done_at_end": True,
         "imagine_horizon": 15,
         "td_model_lr": 5e-5,  #  tune.loguniform(1e-4, 5e-3),
         "actor_lr": 5e-5,  # tune.loguniform(1e-5, 5e-4),
