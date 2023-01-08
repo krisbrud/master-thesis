@@ -333,18 +333,22 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         When t=0, the resetted obs is paired with action and reward of 0, as well as an initial done of false.
         """
 
-        breakpoint()
-        print("Done at end of trajectory before overwrite: ", sample_batch[SampleBatch.DONES][-1])
+        # breakpoint()
+        # print("Done at end of trajectory before overwrite: ", sample_batch[SampleBatch.DONES][-1])
         
         # Overwrite the done at the end of the trajectory to be False if collision_or_reached_goal is False
         # This is because we only want the discount predictor to estimate these done values, not the ones from the horizon
-        try:
-            if sample_batch["infos"][-1]["collision_or_reached_goal"] == False:
-                sample_batch[SampleBatch.DONES][-1] = False
-        except KeyError:
-            print("Warning [AuvDreamerTorchPolicy.post_process_trajectory]: Trying to access infos['collision_or_reached_goal'] but it doesn't exist.")
+        
+        if isinstance(sample_batch["infos"][-1], dict):  # During setup, sample_batch["infos"] are all 0.0.
+            try:
+                if sample_batch["infos"][-1]["collision_or_reached_goal"] == False:
+                    sample_batch[SampleBatch.DONES][-1] = False
+            except KeyError:
+                print("Warning [AuvDreamerTorchPolicy.post_process_trajectory]: Trying to access infos['collision_or_reached_goal'] but it doesn't exist.")
+            except Exception as e:
+                print("Error [AuvDreamerTorchPolicy.post_process_trajectory]: ", e)
 
-        print("Done at end of trajectory after overwrite: ", sample_batch[SampleBatch.DONES][-1]) 
+        # print("Done at end of trajectory after overwrite: ", sample_batch[SampleBatch.DONES][-1]) 
 
         obs = sample_batch[SampleBatch.OBS]
         new_obs = sample_batch[SampleBatch.NEXT_OBS]
