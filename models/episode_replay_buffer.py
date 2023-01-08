@@ -24,7 +24,17 @@ class EpisodeSequenceBuffer(ReplayBuffer):
             if episode.count < self.replay_sequence_length:
                 continue
             available = episode.count - self.replay_sequence_length
-            index = int(random.randint(0, available))
-            episodes_buffer.append(episode[index : index + self.replay_sequence_length])
+
+            has_done_at_end = episode["dones"][-1]
+            should_sample_last_sequence = random.random() < self.replay_sequence_length / available
+            if has_done_at_end and should_sample_last_sequence:
+                # Sample the last sequence of the episode with probability self.replay_sequence_length / available
+                # to avoid sampling the "dones" too little
+                episodes_buffer.append(
+                    episode[-self.replay_sequence_length:]  # Last replay_sequence_length items
+                )
+            else:
+                index = int(random.randint(0, available))
+                episodes_buffer.append(episode[index : index + self.replay_sequence_length])
 
         return concat_samples(episodes_buffer)
