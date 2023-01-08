@@ -332,6 +332,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         """Batch format should be in the form of (o_t, a_(t-1), r_t, done_t)
         When t=0, the resetted obs is paired with action and reward of 0, as well as an initial done of false.
         """
+
+        breakpoint()
+
         obs = sample_batch[SampleBatch.OBS]
         new_obs = sample_batch[SampleBatch.NEXT_OBS]
         action = sample_batch[SampleBatch.ACTIONS]
