@@ -333,7 +333,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         When t=0, the resetted obs is paired with action and reward of 0, as well as an initial done of false.
         """
 
-        breakpoint()
+        # breakpoint()
+        print("Done at end of trajectory? ", sample_batch[SampleBatch.DONES][-1])
 
         obs = sample_batch[SampleBatch.OBS]
         new_obs = sample_batch[SampleBatch.NEXT_OBS]
