@@ -48,6 +48,7 @@ def main():
     env_name = "MovingObstaclesLosRewarder-v0"
 
     gym_auv_config = gym_auv.LOS_COLAV_CONFIG
+    
     dreamer_config = get_ray_tune_auv_dreamer_config(
         env_name=env_name, gym_auv_config=gym_auv_config
     )
