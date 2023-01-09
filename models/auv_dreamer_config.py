@@ -75,7 +75,7 @@ class AuvDreamerConfig(AlgorithmConfig):
 
     def __init__(self):
         """Initializes a PPOConfig instance."""
-        super().__init__(algo_class="Dreamer")
+        super().__init__(algo_class="AuvDreamer")
 
         # fmt: off
         # __sphinx_doc_begin__
@@ -134,11 +134,11 @@ class AuvDreamerConfig(AlgorithmConfig):
         # .training()
         self.gamma = 0.9 # 99
 
-        # .environment()
-        self.env_config = {
-            # Repeats action send by policy for frame_skip times in env
-            "frame_skip": 1,
-        }
+        # # .environment()
+        # self.env_config = {
+        #     # Repeats action send by policy for frame_skip times in env
+        #     "frame_skip": 1,
+        # }
 
         # __sphinx_doc_end__
         # fmt: on
@@ -162,7 +162,7 @@ class AuvDreamerConfig(AlgorithmConfig):
         explore_noise: Optional[float] = None,
         dreamer_model: Optional[dict] = None,
         **kwargs,
-    ) -> "DreamerConfig":
+    ) -> "AuvDreamerConfig":
         """
 
         Args:

@@ -440,18 +440,33 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             state_batches = batchify_states(state_batches, bsize, device=obs.device)
         else:
             # Weird RLlib Handling, this happens when env rests
-            if len(state_batches[0].size()) == 3:
-                # Very hacky, but works on all envs
-                state_batches = model.get_initial_state().to(device=obs.device)
-                # batchify the intial states to match the batch size of the obs tensor
-                state_batches = batchify_states(state_batches, bsize, device=obs.device)
+            if len(state_batches) == 0:
+
+                state_batches = AuvDreamerTorchPolicy._manually_reset_state_batches(model, obs, bsize)
+            elif len(state_batches[0].size()) == 3:
+                state_batches = AuvDreamerTorchPolicy._manually_reset_state_batches(model, obs, bsize)
+                # # Very hacky, but works on all envs
+                # state_batches = model.get_initial_state().to(device=obs.device)
+                # # batchify the intial states to match the batch size of the obs tensor
+                # state_batches = batchify_states(state_batches, bsize, device=obs.device)
             action, logp, state_batches = model.policy(obs, state_batches, explore)
             action = td.Normal(action, policy.config["explore_noise"]).sample()
             action = torch.clamp(action, min=-1.0, max=1.0)
 
-        policy.global_timestep += policy.config["action_repeat"]
+        # policy.global_timestep += policy.config["action_repeat"]
 
         return action, logp, state_batches
+
+    def _manually_reset_state_batches(model, obs, bsize):
+        # For reconciling when state batches are not in the expected format
+
+        # Very hacky, but works on all envs
+        state_batches_list = model.get_initial_state()
+        state_batches = [x.to(device=obs.device) for x in state_batches_list]
+
+        # batchify the intial states to match the batch size of the obs tensor
+        state_batches = batchify_states(state_batches, bsize, device=obs.device)
+        return state_batches 
 
     def make_model(self):
 

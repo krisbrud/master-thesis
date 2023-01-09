@@ -61,9 +61,9 @@ class AuvDreamer(Algorithm):
         # Call super's validation method.
         super().validate_config(config)
 
-        config["action_repeat"] = config["env_config"]["frame_skip"]
-        if config["num_gpus"] > 1:
-            raise ValueError("`num_gpus` > 1 not yet supported for Dreamer!")
+        # config["action_repeat"] = config["env_config"]["frame_skip"]
+        # if config["num_gpus"] > 1:
+            # raise ValueError("`num_gpus` > 1 not yet supported for Dreamer!")
         if config["framework"] != "torch":
             raise ValueError("Dreamer not supported in Tensorflow yet!")
         if config["batch_mode"] != "complete_episodes":
@@ -77,8 +77,8 @@ class AuvDreamer(Algorithm):
                 "`dreamer_train_iters` must be a positive integer. "
                 f"Received {config['dreamer_train_iters']} instead."
             )
-        if config["action_repeat"] > 1:
-            config["horizon"] = config["horizon"] / config["action_repeat"]
+        # if config["action_repeat"] > 1:
+        #     config["horizon"] = config["horizon"] / config["action_repeat"]
 
     @override(Algorithm)
     def get_default_policy_class(self, config: AlgorithmConfigDict):
