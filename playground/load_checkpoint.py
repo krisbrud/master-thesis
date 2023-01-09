@@ -24,5 +24,5 @@ obs = env.reset()
 
 actions = algo.compute_single_action(obs, full_fetch=False)
 
-print(actions)
+print(actions)  # Returns actions, state, logp
 # %%
