@@ -26,8 +26,8 @@ class EpisodeSequenceBuffer(ReplayBuffer):
             available = episode.count - self.replay_sequence_length
 
             has_done_at_end = episode["dones"][-1]
-            should_sample_last_sequence = random.random() < self.replay_sequence_length / available
-            if has_done_at_end and should_sample_last_sequence and available > 0:
+            should_sample_last_sequence = random.random() < self.replay_sequence_length / max(available, 1)
+            if has_done_at_end and should_sample_last_sequence:
                 # Sample the last sequence of the episode with probability self.replay_sequence_length / available
                 # to avoid sampling the "dones" too little
                 episodes_buffer.append(
