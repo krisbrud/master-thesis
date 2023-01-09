@@ -1,7 +1,8 @@
 import random
 
 from ray.rllib.utils.replay_buffers import ReplayBuffer, StorageUnit
-from ray.rllib.policy.sample_batch import concat_samples
+from ray.rllib.utils.typing import SampleBatchType
+from ray.rllib.policy.sample_batch import concat_samples, SampleBatch
 
 class EpisodeSequenceBuffer(ReplayBuffer):
     def __init__(self, capacity: int = 1000, replay_sequence_length: int = 50):
@@ -12,6 +13,26 @@ class EpisodeSequenceBuffer(ReplayBuffer):
         """
         super().__init__(capacity=capacity, storage_unit=StorageUnit.EPISODES)
         self.replay_sequence_length = replay_sequence_length
+
+    def add(self, batch: SampleBatchType, **kwargs):
+        """Adds a batch of episodes to the buffer
+        Args:
+            batch: Batch of episodes to be added
+        """
+        # We overwrite this method to allow adding methods where "done = False" at the end.
+        # This is because we only want done to be True in the case of solving the environment or failing by collision 
+        # (not due to time out etc)
+
+        if not batch.count > 0:
+            return
+
+        assert isinstance(batch, SampleBatch)
+
+        for eps in batch.split_by_episode():
+            # Only add full episodes to the buffer
+            # Check only if info is available
+            self._add_single_batch(eps, **kwargs)
+            
 
     def sample(self, num_items: int):
         """Samples [batch_size, length] from the list of episodes
