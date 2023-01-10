@@ -483,6 +483,7 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         self.device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
+        print("initialized auv dreamer model")
 
     def policy(
         self, obs: TensorType, state: List[TensorType], explore=True

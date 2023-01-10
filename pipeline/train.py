@@ -10,7 +10,7 @@ import gym_auv
 
 from pipeline import callbacks
 from pipeline.config import get_ray_tune_auv_dreamer_config
-from pipeline.register_envs import register_gym_auv_scenarios
+from pipeline.register_components import register_gym_auv_scenarios, register_auv_dreamer_model
 from models.auv_dreamer import (
     AuvDreamer,
 )
@@ -19,8 +19,11 @@ from models.auv_dreamer import (
 def main():
     ray.init()
     print(ray.available_resources())
+
     # Register environments from gym_auv
     register_gym_auv_scenarios()
+    # Register custom model to RLlib model catalog
+    register_auv_dreamer_model()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

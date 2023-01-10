@@ -58,6 +58,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         # TODO: Don't require users to call this manually.
         self._initialize_loss_from_dummy_batch()
+        print("initialized auv dreamer torch policy")
     
 
     # def _get_discount_targets(self, dones) -> torch.TensorType:

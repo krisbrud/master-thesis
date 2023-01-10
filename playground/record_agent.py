@@ -65,7 +65,7 @@ def make_filename_datetime_suffix():
 
 env = gym.make(env_name)
 # recorder = make_recorder(env, "checkpoint-760")
-recorder = make_recorder(env, make_filename_datetime_suffix())
+recorder = make_recorder(env,  "AuvDreamer-" + make_filename_datetime_suffix())
 
 # algo = AuvDreamer(config=dreamer_config)  # .load_checkpoint(args.model_checkpoint)
 # algo.load_checkpoint("/home/krisbrud/repos/master-thesis/playground/checkpoint-760")
@@ -87,7 +87,7 @@ for i in tqdm.tqdm(range(1000)):
     # obs = dict_flattening_preprocessor.transform(dict_obs)
     # obs = torch.Tensor(obs).view(1, -1).to(device)
 
-    action, state, logp = algo.compute_single_action(obs, state, full_fetch=True) 
+    action, state, logp = algo.compute_single_action(obs, state, full_fetch=True, explore=False) 
 
     # action = action.cpu().numpy().flatten()
     obs, reward, done, info = env.step(action)

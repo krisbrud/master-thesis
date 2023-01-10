@@ -68,8 +68,8 @@ class AuvDreamer(Algorithm):
             raise ValueError("Dreamer not supported in Tensorflow yet!")
         if config["batch_mode"] != "complete_episodes":
             raise ValueError("truncate_episodes not supported")
-        if config["num_workers"] != 0:
-            raise ValueError("Distributed Dreamer not supported yet!")
+        # if config["num_workers"] != 0:
+        #     raise ValueError("Distributed Dreamer not supported yet!")
         if config["clip_actions"]:
             raise ValueError("Clipping is done inherently via policy tanh!")
         if config["dreamer_train_iters"] <= 0:
@@ -93,21 +93,43 @@ class AuvDreamer(Algorithm):
         if self.config["_disable_execution_plan_api"] is True:
             self.local_replay_buffer = EpisodeSequenceBuffer(replay_sequence_length=config["batch_length"])
 
+            print("In setup. Prefilling in training step instead")
             # Prefill episode buffer with initial exploration (uniform sampling)
-            while (
-                total_sampled_timesteps(self.workers.local_worker())
-                < self.config["prefill_timesteps"]
-            ):
-                samples = self.workers.local_worker().sample()
-                self.local_replay_buffer.add(samples)
+            # while (
+            #     total_sampled_timesteps(self.workers.local_worker())
+            #     < self.config["prefill_timesteps"]
+            # ):
+            #     samples = self.workers.local_worker().sample()
+            #     self.local_replay_buffer.add(samples)
         else:
             raise ValueError(
                 "`_disable_execution_api` is set to False, which is deprecated and not supported"
             )
 
+    def _prefill_replay_buffer_if_needed(self):
+        """Prefill the replay buffer according to prefill_timesteps in config"""
+        while (
+            total_sampled_timesteps(self.workers.local_worker())
+            < self.config["prefill_timesteps"]
+        ):
+            print("Prefilling!")
+            samples = self.workers.local_worker().sample()
+            self.local_replay_buffer.add(samples)
+
     @override(Algorithm)
     def training_step(self) -> ResultDict:
         local_worker = self.workers.local_worker()
+
+        # Prefill episode buffer with initial exploration (uniform sampling)
+        print("in training step")
+        self._prefill_replay_buffer_if_needed()
+        # while (
+        #     total_sampled_timesteps(self.workers.local_worker())
+        #     < self.config["prefill_timesteps"]
+        # ):
+        #     print("Prefilling in training step")
+        #     samples = self.workers.local_worker().sample()
+        #     self.local_replay_buffer.add(samples)
 
         # Number of sub-iterations for Dreamer
         dreamer_train_iters = self.config["dreamer_train_iters"]
@@ -115,7 +137,9 @@ class AuvDreamer(Algorithm):
 
         # Collect SampleBatches from rollout workers.
         # new_sample_batches = synchronous_parallel_sample(worker_set=self.workers)
+        print("sampling from workers")
         batch = synchronous_parallel_sample(worker_set=self.workers)
+        print("sampled from workers")
         # breakpoint()
         # for batch in new_sample_batches:
         self._counters[NUM_AGENT_STEPS_SAMPLED] += batch.agent_steps()

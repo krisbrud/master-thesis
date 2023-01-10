@@ -125,15 +125,17 @@ class AuvDreamerConfig(AlgorithmConfig):
 
         # Override some of AlgorithmConfig's default values with PPO-specific values.
         # .rollouts()
-        self.num_workers = 0
+        self.num_workers = 0  # 0
         self.num_envs_per_worker = 1
         self.horizon = 10000
         self.batch_mode = "complete_episodes"
         self.clip_actions = False
 
         # .training()
-        self.gamma = 0.9 # 99
+        self.gamma = 0.99 # 99
 
+        print("initialized AuvDreamerConfig")
+        # breakpoint()
         # # .environment()
         # self.env_config = {
         #     # Repeats action send by policy for frame_skip times in env
