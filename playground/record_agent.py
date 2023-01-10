@@ -1,4 +1,5 @@
-from argparse import ArgumentParser
+# %%
+# from argparse import ArgumentParser
 import datetime
 import numpy as np
 import torch
@@ -18,16 +19,16 @@ from models.auv_dreamer_model import AuvDreamerModel
 from pipeline.config import get_auv_dreamer_config_dict, get_ray_tune_auv_dreamer_config
 from pipeline.register_envs import register_gym_auv_scenarios
 
-def parse_arguments() -> dict:
-    parser = ArgumentParser()
-    # parser.add_argument("--model-checkpoint", type=str, help="Checkpoint of agent to use.")
-    args = parser.parse_args()
-    return args
+# def parse_arguments() -> dict:
+#     parser = ArgumentParser()
+#     # parser.add_argument("--model-checkpoint", type=str, help="Checkpoint of agent to use.")
+#     args = parser.parse_args()
+#     return args
 
 
 
 register_gym_auv_scenarios()
-env_name = "MovingObstaclesNoRules-v0"
+env_name = "MovingObstaclesLosRewarder-v0"
 gym_auv_config = gym_auv.Config()
 dreamer_config = get_ray_tune_auv_dreamer_config(env_name, gym_auv.LOS_COLAV_CONFIG)
 dreamer_config["prefill_timesteps"] = 0
@@ -75,6 +76,8 @@ print("Loaded checkpoint!")
 
 print("Starting recording rollout!")
 state = []
+rewards = []
+actions = []
 
 obs = env.reset()
 # while not done:
@@ -88,6 +91,8 @@ for i in tqdm.tqdm(range(1000)):
 
     # action = action.cpu().numpy().flatten()
     obs, reward, done, info = env.step(action)
+    actions.append(action)
+    rewards.append(reward)
     recorder.capture_frame()
 
     if done:
@@ -95,4 +100,9 @@ for i in tqdm.tqdm(range(1000)):
         obs = env.reset()
 
 recorder.close()
- 
+
+# %%
+# Plot the rewards
+import matplotlib.pyplot as plt
+plt.plot(rewards)
+# %%
