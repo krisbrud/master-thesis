@@ -272,8 +272,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         with torch.no_grad():
             val_feat = imag_feat.detach()[:-1]
             target = returns.detach()
-            # val_discount = discount.detach()
-            val_discount = discount_cumprod[:-1].detach()
+            val_discount = discount.detach()
+            # val_discount = discount_cumprod[:-1].detach()
         val_pred = self.model.value(val_feat)
 
         # breakpoint()
