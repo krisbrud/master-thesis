@@ -204,19 +204,19 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             reward = self.model.reward(imag_feat).mean
             value = self.model.value(imag_feat).mean
             # if config["use_discount_prediction"]
-            discount = self.model.discount(imag_feat).mean * self.config["gamma"]
+            # discount = self.model.discount(imag_feat).mean * self.config["gamma"]
             
-            # We predict whether this timestep is done, i.e. if the next will be 
-            # Pad discount prediction with actual values for first time step
-            first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1).float()  # shape: (1, batch_size)
+            # # We predict whether this timestep is done, i.e. if the next will be 
+            # # Pad discount prediction with actual values for first time step
+            # first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1).float()  # shape: (1, batch_size)
             
-            # Shift the discount rates - as they measure whether the following state
-            # will be valid, not if the current state is valid.
-            # Pad on beginning with whether the first state in the replay buffer is terminal
-            padded_discount = torch.cat((first_not_done, discount[:-1]))
-            discount_cumprod = torch.cumprod(padded_discount, dim=0)
+            # # Shift the discount rates - as they measure whether the following state
+            # # will be valid, not if the current state is valid.
+            # # Pad on beginning with whether the first state in the replay buffer is terminal
+            # padded_discount = torch.cat((first_not_done, discount[:-1]))
+            # discount_cumprod = torch.cumprod(padded_discount, dim=0)
 
-        # pcont = self.config["gamma"] * torch.ones_like(reward)
+        pcont = self.config["gamma"] * torch.ones_like(reward)
 
         # As in the implementation of DreamerV2, we override the predicted discount rate of the first timestep with the true
         # discount rate from the replay buffer. 
@@ -224,7 +224,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         # first_is_done = 1.0 - train_batch["dones"][:1].int()
         
         # Estimate probability of continuing
-        prob_continue = padded_discount  # discount  #  pcont
+        # prob_continue = padded_discount  # discount  #  pcont
+        prob_continue = pcont
 
         # Similar to GAE-Lambda, calculate value targets
         # next_values = torch.cat([value[:-1][1:], value[-1][None]], dim=0)  # This is equivalent to value[1:]
@@ -252,12 +253,12 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         returns = list(reversed(returns))
         returns = torch.stack(returns, dim=0)
-        # discount_shape = prob_continue[:1].size()
-        # discount = torch.cumprod(
-        #     torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
-        #     dim=0,
-        # )
-        # actor_loss = -torch.mean(discount * returns)
+        discount_shape = prob_continue[:1].size()
+        discount = torch.cumprod(
+            torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
+            dim=0,
+        )
+        actor_loss = -torch.mean(discount * returns) # + entropy_loss
         # print(f"{discount_cumprod.shape = }")
         # print(f"{discount_cumprod[:-1].shape = }")
         # print(f"{returns.shape = }")
@@ -265,7 +266,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         # breakpoint()
 
-        actor_loss = -torch.mean(discount_cumprod[:-1] * returns) + entropy_loss
+        # actor_loss = -torch.mean(discount_cumprod[:-1] * returns) + entropy_loss
 
         # Critic Loss
         with torch.no_grad():
