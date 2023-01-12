@@ -149,6 +149,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         discount_weights = list(self.model.discount.parameters())
         dynamics_weights = list(self.model.dynamics.parameters())
         critic_weights = list(self.model.value.parameters())
+        target_critic_weights = list(self.model.value_target.parameters())
         model_weights = list(
             encoder_weights + decoder_weights + reward_weights + dynamics_weights + discount_weights
         )
@@ -200,9 +201,11 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
             # Give a bonus for higher entropy in the policy
             entropy_loss = -torch.mean(model.actor(imag_feat).base_dist.base_dist.entropy()) * self.config["dreamer_model"]["entropy_coeff"]
-        with FreezeParameters(model_weights + critic_weights):
+        with FreezeParameters(model_weights + critic_weights + target_critic_weights):
             reward = self.model.reward(imag_feat).mean
-            value = self.model.value(imag_feat).mean
+            # value = self.model.value(imag_feat).mean
+            value = self.model.value_target(imag_feat).mean
+
             # if config["use_discount_prediction"]
             # discount = self.model.discount(imag_feat).mean * self.config["gamma"]
             

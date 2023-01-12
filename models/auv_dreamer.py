@@ -162,6 +162,9 @@ class AuvDreamer(Algorithm):
         print("Training iteration done!")
         # print(n_dones)
 
+        # Update the target network
+        local_worker.foreach_policy(lambda policy, policy_id: policy.update_target_critic())
+
         if fetches:
             # Custom logging.
             policy_fetches = fetches[DEFAULT_POLICY_ID]["learner_stats"]
