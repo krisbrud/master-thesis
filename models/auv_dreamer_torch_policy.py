@@ -258,7 +258,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
             dim=0,
         )
-        actor_loss = -torch.mean(discount * returns) # + entropy_loss
+        actor_loss = -torch.mean(discount * returns) + entropy_loss
         # print(f"{discount_cumprod.shape = }")
         # print(f"{discount_cumprod[:-1].shape = }")
         # print(f"{returns.shape = }")
