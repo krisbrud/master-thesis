@@ -3,6 +3,7 @@
 
 # import torch
 import math
+import copy
 # from turtle import forward
 import gym
 import gym.spaces
@@ -12,7 +13,6 @@ from torch import nn
 import torch.functional as F
 from torch import distributions as td
 from ray.rllib.utils.framework import TensorType
-
 from ray.rllib.models.torch.misc import Reshape
 
 # from ray.rllib.algorithms.dreamer.utils import Conv2d
@@ -474,6 +474,8 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
             self.stoch_size + self.deter_size, 1, 3, self.hidden_size
         )
 
+        self.value_target = copy.deepcopy(self.value) 
+
         self.discount = DenseDecoder(
             self.stoch_size + self.deter_size, 1, 4, self.hidden_size, dist="binary"
         )
@@ -580,6 +582,10 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         # returned state should be of shape (state_dim, )
         self.state = [s.squeeze(0) for s in self.state]
         return self.state
+
+    def update_target_critic(self):
+        """Copies the critic parameters to the target critic."""
+        self.value_target.load_state_dict(self.value.state_dict())
 
     def value_function(self) -> TensorType:
         return None

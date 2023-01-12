@@ -477,13 +477,16 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             self.action_space,
             1,
             self.config["dreamer_model"],
-            name="DreamerModel",
+            name="DreamerModel",  # TODO: Check if this is what causes distributed dreamer w/ custom model to fail
             framework="torch",
         )
 
         self.model_variables = model.variables()
 
         return model
+
+    def update_target_critic(self):
+        self.model.update_target_critic()
 
     def extra_grad_process(
         self, optimizer: "torch.optim.Optimizer", loss: TensorType
