@@ -89,7 +89,7 @@ def get_ray_tune_auv_dreamer_config(
         "use_occupancy": gym_auv_config.sensor.use_occupancy_grid,
         "occupancy_grid_shape": (2, 64, 64),
         "use_discount_prediction": True,
-        "use_kl_balancing": tune.choice([False, True]),  # True,
+        "use_kl_balancing": True, # tune.choice([False, True]),  # True,
         "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
     }
 
@@ -107,9 +107,9 @@ def get_ray_tune_auv_dreamer_config(
         "horizon": 2500,  # After horizon time steps, the environment is reset
         # "no_done_at_end": True,
         "imagine_horizon": 15,
-        "td_model_lr": tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  #  tune.loguniform(1e-4, 5e-3),
-        "actor_lr": tune.choice([1e-4, 3e-5, 8e-6]),  # tune.loguniform(1e-5, 5e-4),
-        "critic_lr": tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  # tune.loguniform(1e-5, 5e-4),
+        "td_model_lr": 8e-6,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  #  tune.loguniform(1e-4, 5e-3),
+        "actor_lr": 1e-5,  # tune.choice([1e-4, 3e-5, 8e-6]),  # tune.loguniform(1e-5, 5e-4),
+        "critic_lr": 1e-4,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
         # "rollout_fragment_length": 16e3,
         "normalize_actions":  True, # tune.choice([True, False]),
@@ -117,7 +117,7 @@ def get_ray_tune_auv_dreamer_config(
         # Use the custom model
         "dreamer_model": model_options,
         # "record_env": True,
-        "prefill_timesteps": 10e3,  # 50e3, # 25e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
+        "prefill_timesteps": 50e3,  # 50e3, # 25e3, # 50e3,  # tune.choice([10e3, 50e3, 100e3])
         "evaluation_duration": 5,
         "evaluation_interval": 20,
         "evaluation_duration_unit": "episodes",
@@ -128,7 +128,7 @@ def get_ray_tune_auv_dreamer_config(
         # },
         "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
         "explore_noise": 0.1, #  tune.choice([0.1]), #  0.3, # 3, # tune.loguniform(1e-3, 5e-2),
-        "free_nats": tune.choice([1, 3]), # 1,  # tune.loguniform(1e-4, 5),
+        "free_nats": 1,  # tune.choice([1, 3]), # 1,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
         # }
