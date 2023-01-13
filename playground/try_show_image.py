@@ -1,4 +1,6 @@
 #%%
+%load_ext autoreload
+%autoreload 2
 import gym
 import gym_auv
 
@@ -22,5 +24,6 @@ obs = env.reset()
 ## Show image located in obs["image"]
 import matplotlib.pyplot as plt
 plt.imshow(obs["image"] / 255.0)
+# %% 
 plt.imshow(env.render() / 255.0)
 # %%
