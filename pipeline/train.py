@@ -46,9 +46,9 @@ def main():
     args = parser.parse_args()
     n_training_iters = args.train_iterations
 
-    # env_name = "MovingObstaclesNoRules-v0"
+    env_name = "MovingObstaclesNoRules-v0"
     # env_name = "MovingObstaclesSimpleRewarder-v0"
-    env_name = "MovingObstaclesLosRewarder-v0"
+    # env_name = "MovingObstaclesLosRewarder-v0"
 
     gym_auv_config = gym_auv.LOS_COLAV_CONFIG
     

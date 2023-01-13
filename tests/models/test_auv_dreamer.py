@@ -4,7 +4,7 @@ import gym_auv
 from models.auv_dreamer import AuvDreamer # , auv_dreamer_factory
 # from models.auv_dreamer import _get_auv_dreamer_model_options
 from pipeline.config import get_auv_dreamer_config_dict
-from pipeline.register_envs import register_gym_auv_scenarios
+from pipeline.register_components import register_gym_auv_scenarios
 from torch import cuda
 
 def test_auv_dreamer_initialization():
