@@ -34,7 +34,7 @@ config = dv2.defaults.update({
     "decoder": {"mlp_keys": "dense", "cnn_keys": "image"},
 }).parse_flags()
 
-gym_auv_config = gym_auv.MOVING_CONFIG
+gym_auv_config = gym_auv.LOS_COLAV_CONFIG
 gym_auv_config.sensor.use_image_observation = True
 
 env_name = "MovingObstaclesLosRewarder-v0"
