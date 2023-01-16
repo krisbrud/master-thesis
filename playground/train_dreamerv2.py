@@ -6,15 +6,16 @@ import dreamerv2.api as dv2
 
 import copy
 
+log_suffix = "-jan-16-1"
 # Override some of the default config options located in dreamerv2/configs.yaml
 config = dv2.defaults.update({
     ## Training options
-    "logdir": "~/repos/master-thesis/logdir/MovingObstaclesLosRewarder-v0",
+    "logdir": "~/repos/master-thesis/logdir/MovingObstaclesLosRewarder-v0" + log_suffix,
     "log_every": 1e3,
     "train_every": 10,
     "eval_every": 1e4,
-    "prefill": 2e4,
-    "envs": 4, 
+    "prefill": 2.5e4,
+    # "envs": 4, 
 
     ## Agent options
     "clip_rewards": "tanh",
@@ -23,7 +24,7 @@ config = dv2.defaults.update({
     
     ## Model options
     "loss_scales.kl": 1.0,
-    "discount": 0.99,
+    "discount": 0.995,  # 0.99 as default
     "kl": {"free": 1.0}, 
     "model_opt": {"lr": 3e-4},
     "actor_opt": {"lr": 8e-5},
