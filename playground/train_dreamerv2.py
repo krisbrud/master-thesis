@@ -6,7 +6,7 @@ import dreamerv2.api as dv2
 
 import copy
 
-log_suffix = "-jan-16-1"
+log_suffix = "-jan-16-2"
 # Override some of the default config options located in dreamerv2/configs.yaml
 config = dv2.defaults.update({
     ## Training options
@@ -14,12 +14,12 @@ config = dv2.defaults.update({
     "log_every": 1e3,
     "train_every": 10,
     "eval_every": 1e4,
-    "prefill": 2.5e4,
+    "prefill": 5e4,
     # "envs": 4, 
 
     ## Agent options
     "clip_rewards": "tanh",
-    "expl_noise": 0.0,  # Use entropy instead of noise to encourage exploration
+    "expl_noise": 0.05,  # Mainly use entropy instead of noise to encourage exploration
     "actor_ent": 1e-4,
     
     ## Model options
@@ -36,6 +36,7 @@ config = dv2.defaults.update({
 
 gym_auv_config = gym_auv.LOS_COLAV_CONFIG
 gym_auv_config.sensor.use_image_observation = True
+gym_auv_config.episode.use_terminated_truncated_step_api = True
 
 env_name = "MovingObstaclesLosRewarder-v0"
 env = gym.make(env_name, env_config=gym_auv_config)
