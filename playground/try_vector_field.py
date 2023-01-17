@@ -1,5 +1,4 @@
 # %%
-
 import numpy as np
 
 x, y = np.meshgrid(np.linspace(-1, 1, 10), np.linspace(-1, 1, 10))
@@ -93,4 +92,33 @@ plt.xlim(0, 300)
 plt.ylim(0, 300)
 plt.quiver(x, y, u, v)
 plt.plot(path.points[:,0], path.points[:,1])
+# %%
+import matplotlib.pyplot as plt
+
+
+
+# plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
+# Create figure and set x and y limits
+fig, ax = plt.subplots()
+ax.set_xlim([0, 300])
+ax.set_ylim([0, 300])
+
+# Set equal aspect ratio
+ax.set_aspect('equal')
+
+# Set titles
+ax.set_title("Line-of-Sight Vector Field")
+
+# Set labels
+ax.set_xlabel(r"$x_n$")
+ax.set_ylabel(r"$y_n$")
+
+ax.quiver(x, y, u, v)
+ax.plot(path.points[:,0], path.points[:,1])
+
+# Show the figure
+plt.show()
+
 # %%
