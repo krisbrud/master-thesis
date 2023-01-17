@@ -17,13 +17,17 @@ renderer = "2d"
 gym_auv_config = gym_auv.Config()
 gym_auv_config.sensor.use_lidar = True
 gym_auv_config.sensor.use_occupancy_grid = True
+gym_auv_config.episode.use_terminated_truncated_step_api = True
 
-env = MovingObstaclesNoRules(
-    gym_auv_config, test_mode=False, renderer=renderer, verbose=True
-)
+# env = MovingObstaclesNoRules(
+#     gym_auv_config, test_mode=False, renderer=renderer, verbose=True
+# )
 # env = PathFollowNoObstacles(
 #     gym_auv.PATHFOLLOW_CONFIG, test_mode=False, renderer=renderer, verbose=True
 # )
+env_name = "TestScenario1-v0"
+env = gym.make(env_name, gym_auv_config)
+env.reset()
 
 
 this_directory = os.path.dirname(os.path.abspath(__file__))  # Directory of this file
@@ -38,7 +42,8 @@ def make_filename_datetime_suffix():
     now = datetime.datetime.now()
     return now.strftime("%Y%m%d_%H%M%S")
 
-video_path = os.path.join(video_directory, "otter_pathfollow-" + make_filename_datetime_suffix())
+# video_path = os.path.join(video_directory, "otter_pathfollow-" + make_filename_datetime_suffix())
+video_path = os.path.join(video_directory, env_name + make_filename_datetime_suffix())
 recorder = video_recorder.VideoRecorder(env=env, base_path=video_path)
 
 # straight_ahead_action = np.array([0.9, np.random.normal(0, 0.01)])
