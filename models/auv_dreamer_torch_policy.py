@@ -205,20 +205,27 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             # value = self.model.value(imag_feat).mean
             value = self.model.value_target(imag_feat).mean
 
-            # if config["use_discount_prediction"]
-            # discount = self.model.discount(imag_feat).mean * self.config["gamma"]
-            
-            # # We predict whether this timestep is done, i.e. if the next will be 
-            # # Pad discount prediction with actual values for first time step
-            # first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1).float()  # shape: (1, batch_size)
-            
-            # # Shift the discount rates - as they measure whether the following state
-            # # will be valid, not if the current state is valid.
-            # # Pad on beginning with whether the first state in the replay buffer is terminal
-            # padded_discount = torch.cat((first_not_done, discount[:-1]))
-            # discount_cumprod = torch.cumprod(padded_discount, dim=0)
-
-        pcont = self.config["gamma"] * torch.ones_like(reward)
+            if config["use_continuation_prediction"]:  # Also known as discount prediction
+                prob_continue = self.model.discount(imag_feat).mean * self.config["gamma"]
+                
+                # We predict whether this timestep is done, i.e. if the next will be 
+                # Pad discount prediction with actual values for first time step
+                first_not_done = 1.0 - train_batch[SampleBatch.DONES].reshape(1, -1).float()  # shape: (1, batch_size)
+                first_not_done *= self.config["gamma"] 
+                
+                # Skip the first continuation predictions, they measure whether the following state
+                # will be valid, not if the current state is valid.
+                # Pad on beginning with whether the first state in the replay buffer is terminal/done
+                padded_discount = torch.cat((first_not_done, prob_continue[1:]))
+                discount_cumprod = torch.cumprod(padded_discount, dim=0)
+            else:
+                # Assume probability of coninuing is equal to the discount rate
+                prob_continue = self.config["gamma"] * torch.ones_like(reward)
+                discount_shape = prob_continue[:1].size()
+                discount_cumprod = torch.cumprod(
+                    torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
+                    dim=0,
+                )
 
         # As in the implementation of DreamerV2, we override the predicted discount rate of the first timestep with the true
         # discount rate from the replay buffer. 
@@ -227,7 +234,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         
         # Estimate probability of continuing
         # prob_continue = padded_discount  # discount  #  pcont
-        prob_continue = pcont
+        # prob_continue = pcont
 
         # Similar to GAE-Lambda, calculate value targets
         # next_values = torch.cat([value[:-1][1:], value[-1][None]], dim=0)  # This is equivalent to value[1:]
@@ -243,11 +250,11 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         inputs = reward[:-1] + prob_continue[:-1] * next_values * (1 - self.config["lambda"])
 
         def agg_fn(last, step_inputs, prob_continue):
-            # Essentially a variant of a reducer for calculating value targets.
+            # Essentially a variant of a reducer for calculating lambda-returns.
             # y[0] are the inputs (defined above), while y[1] is typically the probability of continuing
             return step_inputs + prob_continue * self.config["lambda"] * last
 
-        last = value[-1]
+        last = value[-1]  # Bootstrap the last value prediction
         returns = []
         for i in reversed(range(len(inputs))):
             last = agg_fn(last, inputs[i], prob_continue[:-1][i])
@@ -255,12 +262,12 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         returns = list(reversed(returns))
         returns = torch.stack(returns, dim=0)
-        discount_shape = prob_continue[:1].size()
-        discount = torch.cumprod(
-            torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
-            dim=0,
-        )
-        actor_loss = -torch.mean(discount * returns) + entropy_loss
+        # discount_shape = prob_continue[:1].size()
+        # discount = torch.cumprod(
+        #     torch.cat([torch.ones(*discount_shape).to(device), prob_continue[:-2]], dim=0),
+        #     dim=0,
+        # )
+        actor_loss = -torch.mean(discount_cumprod * returns) + entropy_loss
         # print(f"{discount_cumprod.shape = }")
         # print(f"{discount_cumprod[:-1].shape = }")
         # print(f"{returns.shape = }")
