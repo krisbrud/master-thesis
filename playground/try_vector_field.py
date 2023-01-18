@@ -1,53 +1,13 @@
 # %%
 import numpy as np
-
-# Use get_point_vector to get the vector at each point
-# u, v = np.vectorize(get_point_vector)(x, y)
-
-# Make a quiver plot in matplotlib
 import matplotlib.pyplot as plt
-
-# plt.quiver(x, y, u, v)
-# plt.show()
-
-# %%
 from gym_auv.objects.path import Path
-
-x_max = 400
-n_points = 100
-x_waypoints = np.linspace(0, x_max, n_points)
-
-y_waypoints = np.cos((x_waypoints * np.pi / (x_max)) - (np.pi)) * (x_max) 
-
-# plt.plot(x_waypoints, y_waypoints)
-
-waypoints_np = np.array([x_waypoints, y_waypoints])
-
-# Roatate waypoints by 30 degrees
-# c, s = np.cos(theta), np.sin(theta)
-# R = np.array(((c, -s), (s, c)))
-# waypoints_np = R @ waypoints_np
-print(waypoints_np.shape)
-# waypoints = waypoints_np.tolist()
-# print(waypoints)
-
-waypoints_np = np.array([[0, 0], [80, 100], [300, 300]]).T
-
-# Set axes to be equal
-plt.axis("equal")
-# Set xlim and ylim to 0, 300
-plt.xlim(0, 300)
-plt.ylim(-150, 150)
-
-# plt.plot(waypoints_np[0, :], waypoints_np[1, :])
-plt.show()
-# Want waypoints in shape(2, N)
+waypoints_np = np.array([[0, 0], [70, 130], [300, 300], [500, 500]]).T
 path = Path(waypoints_np)
 
-# %%
+lookahead_distance = 150
 
-
-def get_los_vector(x_coord, y_coord, path: Path = path, lookahead_distance=50):
+def get_los_vector(x_coord, y_coord, path: Path = path, lookahead_distance=lookahead_distance):
     """Gets the Line-of-Sight vector at the point (x, y)"""
     pos = np.array([x_coord, y_coord])
     nearest_point_arclength = path.get_closest_arclength(pos)
@@ -69,14 +29,14 @@ x, y = np.meshgrid(np.linspace(0, 300, 7 + 6), np.linspace(0, 300, 7 + 6))
 u, v = np.vectorize(get_los_vector)(x, y)
 
 # Make a quiver plot in matplotlib
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 # Set axes to be equal
-plt.axis("equal")
-# Set xlim and ylim to 0, 300
-plt.xlim(0, 300)
-plt.ylim(0, 300)
-plt.quiver(x, y, u, v)
-plt.plot(path.points[:,0], path.points[:,1])
+# plt.axis("equal")
+# # Set xlim and ylim to 0, 300
+# plt.xlim(0, 300)
+# plt.ylim(0, 300)
+# plt.quiver(x, y, u, v)
+# plt.plot(path.points[:,0], path.points[:,1])
 # %%
 import matplotlib.pyplot as plt
 
@@ -97,13 +57,18 @@ ax.set_aspect('equal')
 ax.set_title("Line-of-Sight Vector Field")
 
 # Set labels
-ax.set_xlabel(r"$x_n$")
-ax.set_ylabel(r"$y_n$")
+ax.set_xlabel(r"$x_n$ (m)")
+ax.set_ylabel(r"$y_n$ (m)")
+
+path_color=(55/255, 75/255, 105/255)
+# path_color = (0, 115 / 255, 115 / 255)
 
 ax.quiver(x, y, u, v)
-ax.plot(path.points[:,0], path.points[:,1])
+ax.plot(path.points[:,0], path.points[:,1], "--", color=path_color)   
 
 # Show the figure
 plt.show()
 
+# Save the plot as pdf
+fig.savefig("los_vector_field.pdf", bbox_inches='tight')
 # %%

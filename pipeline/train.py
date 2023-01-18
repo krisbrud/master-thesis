@@ -1,4 +1,5 @@
 import argparse
+import copy
 
 import ray
 from ray import tune
@@ -43,18 +44,26 @@ def main():
         help="Whether to use Weights & Biases (wandb) for tracking the experiment",
         action="store_true",
     )
+    parser.add_argument(
+        "--minimal-prefill",
+        help="Prefill only one episode",
+        action="store_true",
+    )
     args = parser.parse_args()
     n_training_iters = args.train_iterations
 
-    env_name = "MovingObstaclesNoRules-v0"
+    # env_name = "MovingObstaclesNoRules-v0"
     # env_name = "MovingObstaclesSimpleRewarder-v0"
-    # env_name = "MovingObstaclesLosRewarder-v0"
+    env_name = "MovingObstaclesLosRewarder-v0"
 
     gym_auv_config = gym_auv.LOS_COLAV_CONFIG
-    
+   
     dreamer_config = get_ray_tune_auv_dreamer_config(
         env_name=env_name, gym_auv_config=gym_auv_config
     )
+
+    if args.minimal_prefill:
+        dreamer_config["prefill_timesteps"] = 200
 
     if cuda.is_available():
         # Use GPU if available
