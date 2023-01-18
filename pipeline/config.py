@@ -109,7 +109,7 @@ def get_ray_tune_auv_dreamer_config(
         "imagine_horizon": 15,
         "td_model_lr": 1e-5,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  #  tune.loguniform(1e-4, 5e-3),
         "actor_lr": 4e-5,  # tune.choice([1e-4, 3e-5, 8e-6]),  # tune.loguniform(1e-5, 5e-4),
-        "critic_lr": 1e-4,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  # tune.loguniform(1e-5, 5e-4),
+        "critic_lr": 4e-5,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
         # "rollout_fragment_length": 16e3,
         "normalize_actions":  True, # tune.choice([True, False]),

@@ -88,9 +88,9 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         discount_loss = -torch.mean(discount_pred.log_prob(not_dones))
         
-        # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
+        discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
 
-        # discount_loss = -torch.mean(discount_pred.log_prob(TODO))
+        discount_loss = -torch.mean(discount_pred.log_prob(TODO))
         prior_dist = self.model.dynamics.get_dist(prior[0], prior[1])
         post_dist = self.model.dynamics.get_dist(post[0], post[1])
 
