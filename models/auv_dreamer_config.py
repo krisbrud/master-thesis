@@ -115,12 +115,14 @@ class AuvDreamerConfig(AlgorithmConfig):
             "use_lidar": DEFAULT_CONFIG.sensor.use_lidar,
             "use_occupancy": DEFAULT_CONFIG.sensor.use_occupancy_grid,
             "occupancy_grid_shape": (2, DEFAULT_CONFIG.sensor.occupancy_grid_size, DEFAULT_CONFIG.sensor.occupancy_grid_size),
-            "use_discount_prediction": True,
+            "use_continuation_prediction": True,  # Also known as discount prediction
 
             "use_kl_balancing": True,
             "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
 
             "entropy_coeff": 0.01,  # Coefficient for actor entropy bonus
+
+            "tanh_squash_rewards": True,
         }
 
         # Override some of AlgorithmConfig's default values with PPO-specific values.
