@@ -394,6 +394,49 @@ class MLP(nn.Module):
         # print("x.shape", x.shape)
         return self.layers(x)
 
+class AuvRSSM(RSSM):
+    """Override the RSSM class to be able to reset the state if the state is the first one"""
+    def observe(
+            self, embed: TensorType, action: TensorType, state: List[TensorType] = None, is_firsts: TensorType = None
+        ) -> Tuple[List[TensorType], List[TensorType]]:
+        """Returns the corresponding states from the embedding from ConvEncoder
+        and actions. This is accomplished by rolling out the RNN from the
+        starting state through each index of embed and action, saving all
+        intermediate states between.
+
+        Args:
+            embed: ConvEncoder embedding
+            action: Actions
+            state (List[TensorType]): Initial state before rollout
+
+        Returns:
+            Posterior states and prior states (both List[TensorType])
+        """
+        embed = embed.permute(1, 0, 2)
+        action = action.permute(1, 0, 2)
+
+        priors = [[] for i in range(len(state))]
+        posts = [[] for i in range(len(state))]
+        last = (state, state)
+        for index in range(len(action)):
+            # Tuple of post and prior
+            if is_firsts is not None:
+                if is_firsts[index]:
+                    # Reset the state
+                    initial_state = self.get_initial_state()
+                    last = (initial_state, initial_state)
+
+            last = self.obs_step(last[0], action[index], embed[index])
+            [o.append(s) for s, o in zip(last[0], posts)]
+            [o.append(s) for s, o in zip(last[1], priors)]
+
+        prior = [torch.stack(x, dim=0) for x in priors]
+        post = [torch.stack(x, dim=0) for x in posts]
+
+        prior = [e.permute(1, 0, 2) for e in prior]
+        post = [e.permute(1, 0, 2) for e in post]
+
+        return post, prior
 
 # Represents all models in Dreamer, unifies them all into a single interface
 # Modified version of the original DreamerModel (https://github.com/ray-project/ray/blob/96cceb08e8bf73df990437002e25883c5a72d30c/rllib/algorithms/dreamer/dreamer_model.py),

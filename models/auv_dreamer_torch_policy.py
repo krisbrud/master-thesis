@@ -205,7 +205,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             # value = self.model.value(imag_feat).mean
             value = self.model.value_target(imag_feat).mean
 
-            if config["use_continuation_prediction"]:  # Also known as discount prediction
+            if self.config["dreamer_model"]["use_continuation_prediction"]:  # Also known as discount prediction
                 prob_continue = self.model.discount(imag_feat).mean * self.config["gamma"]
                 
                 # We predict whether this timestep is done, i.e. if the next will be 
@@ -217,7 +217,7 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
                 # will be valid, not if the current state is valid.
                 # Pad on beginning with whether the first state in the replay buffer is terminal/done
                 padded_discount = torch.cat((first_not_done, prob_continue[1:]))
-                discount_cumprod = torch.cumprod(padded_discount, dim=0)
+                discount_cumprod = torch.cumprod(padded_discount, dim=0)[:-1]  # Drop last value
             else:
                 # Assume probability of coninuing is equal to the discount rate
                 prob_continue = self.config["gamma"] * torch.ones_like(reward)
@@ -281,8 +281,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         with torch.no_grad():
             val_feat = imag_feat.detach()[:-1]
             target = returns.detach()
-            val_discount = discount.detach()
-            # val_discount = discount_cumprod[:-1].detach()
+            # val_discount = discount.detach()
+            val_discount = discount_cumprod.detach()
         val_pred = self.model.value(val_feat)
 
         # breakpoint()

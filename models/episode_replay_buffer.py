@@ -1,5 +1,7 @@
 import random
 
+import numpy as np
+
 from ray.rllib.utils.replay_buffers import ReplayBuffer, StorageUnit
 from ray.rllib.utils.typing import SampleBatchType
 from ray.rllib.policy.sample_batch import concat_samples, SampleBatch
@@ -56,6 +58,12 @@ class EpisodeSequenceBuffer(ReplayBuffer):
             #     )
             # else:
             index = int(random.randint(0, available))
-            episodes_buffer.append(episode[index : index + self.replay_sequence_length])
+            
+            episode_segment = episode[index : index + self.replay_sequence_length]
+            is_firsts = np.zeros((self.replay_sequence_length,))
+            is_firsts[0] = 1
+            episode_segment["is_firsts"] = is_firsts
+
+            episodes_buffer.append(episode_segment)
 
         return concat_samples(episodes_buffer)
