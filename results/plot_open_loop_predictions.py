@@ -41,6 +41,8 @@ with Image.open(filename) as im:
 import matplotlib.pyplot as plt
 from PIL import Image
 
+plt.style.use("ggplot")
+
 # Open the GIF
 with Image.open(filename) as im:
     # Create a figure with 10 columns and 1 row
@@ -53,6 +55,10 @@ with Image.open(filename) as im:
         axes[i].imshow(frame)
         axes[i].set_adjustable("box")
         axes[i].axis('off')
+        title_offset = -0.3
+        axes[i].set_title(f"t = {i}", y=title_offset)
+        # axes[i].set_title(f"t = {i}")
     # plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
+    fig.savefig("someframes.pdf")
 # %%
