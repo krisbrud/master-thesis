@@ -418,12 +418,12 @@ class AuvRSSM(RSSM):
         # We have batch_size sequences of length batch_length
         batch_size = action.size()[0]
         batch_length = action.size()[1]
-        
-        print("Batch size (inferred from action in observe): ", batch_size)
+
+        # print("Batch size (inferred from action in observe): ", batch_size)
         if state is None:
             # state = self.get_initial_state(batch_size)
             state = self.get_initial_state(batch_size)
-            print("Reset state at start of observe! Batch size: ", batch_size)
+            # print("Reset state at start of observe! Batch size: ", batch_size)
             # breakpoint()
 
         if embed.dim() <= 2:
@@ -450,7 +450,7 @@ class AuvRSSM(RSSM):
                 if is_firsts[index]:
                     # breakpoint()
                     # Reset the state
-                    print("Resetting state", index)
+                    # print("Resetting state", index)
                     initial_state = self.get_initial_state(batch_size)
                     last = (initial_state, initial_state)
 

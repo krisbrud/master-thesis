@@ -94,12 +94,17 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         if train_batch["actions"].shape[0] != self.config["batch_size"] * self.config["batch_length"]:
             # Warning: VERY hacky. During Algorithm._initialize_loss_from_dummy_batch(), the batch size is 33. 
             # Then, we may not reshape to batch_size, batch_length, ..., and must instead reshape to (33, 1, ...)
+            batch_size = train_batch["actions"].shape[0]
+            batch_length = 1
+
             latent_reshaped = latent.reshape(train_batch["actions"].shape[0], 1, -1)
             actions_reshaped = train_batch["actions"].reshape(train_batch["actions"].shape[0], 1, -1)
             print("Warning! Reshaping latent to (33, 1, ...)! This should only happen during Algorithm._initialize_loss_from_dummy_batch()")
         else:
-            latent_reshaped = latent.reshape(self.config["batch_size"], self.config["batch_length"], -1)
-            actions_reshaped = train_batch["actions"].reshape(self.config["batch_size"], self.config["batch_length"], -1)
+            batch_size = self.config["batch_size"]
+            batch_length = self.config["batch_length"]
+            latent_reshaped = latent.reshape(batch_size, batch_length, -1)
+            actions_reshaped = train_batch["actions"].reshape(batch_size, batch_length, -1)
 
         post, prior = self.model.dynamics.observe(latent_reshaped, actions_reshaped, is_firsts=is_firsts)
 
@@ -107,13 +112,13 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         image_pred = self.model.decoder(features)
         reward_pred = self.model.reward(features)
         discount_pred = self.model.discount(features)
-        image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].unsqueeze(1)))
-        reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"]))
+        image_loss = -torch.mean(image_pred.log_prob(train_batch["obs"].reshape(batch_size, batch_length, -1)))
+        reward_loss = -torch.mean(reward_pred.log_prob(train_batch["rewards"].reshape(batch_size, batch_length, -1)))
         not_dones = 1.0 - train_batch["dones"].float()
 
         # breakpoint()
 
-        discount_loss = -torch.mean(discount_pred.log_prob(not_dones))
+        discount_loss = -torch.mean(discount_pred.log_prob(not_dones.reshape(batch_size, batch_length, -1)))
         
         # discount_target = self._get_discount_targets(dones=train_batch["dones"], discount_rate=self.config["gamma"])   # TODO
 
@@ -142,6 +147,8 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
 
         prior_ent = torch.mean(prior_dist.entropy())
         post_ent = torch.mean(post_dist.entropy())
+
+        # breakpoint()
 
         model_return_dict = {
             "model_loss": model_loss,
