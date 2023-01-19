@@ -415,7 +415,11 @@ class AuvRSSM(RSSM):
         Returns:
             Posterior states and prior states (both List[TensorType])
         """
-        batch_size = action.size()[0]
+        # We have batch_size sequences of length batch_length
+        batch_size = self.config["batch_size"]
+        batch_length = self.config["batch_length"]
+
+        # batch_size = action.size()[0]
         if state is None:
             # state = self.get_initial_state(batch_size)
             state = self.get_initial_state(batch_size)
@@ -423,18 +427,21 @@ class AuvRSSM(RSSM):
             breakpoint()
 
         if embed.dim() <= 2:
-            embed = torch.unsqueeze(embed, 1)
+            # embed = torch.unsqueeze(embed, 1)
+            embed = embed.reshape(batch_size, batch_length, -1)
 
         if action.dim() <= 2:
-            action = torch.unsqueeze(action, 1)
+            # action = torch.unsqueeze(action, 1)
+            action = action.reshape(batch_size, batch_length, -1)
 
-        embed = embed.permute(1, 0, 2)
-        action = action.permute(1, 0, 2)
+        # embed = embed.permute(1, 0, 2)
+        # action = action.permute(1, 0, 2)
 
         priors = [[] for i in range(len(state))]
         posts = [[] for i in range(len(state))]
         last = (state, state)
-        for index in range(len(action)):
+        # for index in range(len(action)):
+        for index in range(len(batch_size)):
             # Tuple of post and prior
             # if is_firsts is not None:
             #     if is_firsts[index]:
