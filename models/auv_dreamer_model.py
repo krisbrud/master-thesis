@@ -416,40 +416,43 @@ class AuvRSSM(RSSM):
             Posterior states and prior states (both List[TensorType])
         """
         # We have batch_size sequences of length batch_length
-        batch_size = self.config["batch_size"]
-        batch_length = self.config["batch_length"]
-
-        # batch_size = action.size()[0]
+        batch_size = action.size()[0]
+        batch_length = action.size()[1]
+        
+        print("Batch size (inferred from action in observe): ", batch_size)
         if state is None:
             # state = self.get_initial_state(batch_size)
             state = self.get_initial_state(batch_size)
             print("Reset state at start of observe! Batch size: ", batch_size)
-            breakpoint()
+            # breakpoint()
 
         if embed.dim() <= 2:
             # embed = torch.unsqueeze(embed, 1)
-            embed = embed.reshape(batch_size, batch_length, -1)
+            # embed = embed.reshape(batch_size, batch_length, -1)
+            print("Warning! Embed dim too low!")
 
         if action.dim() <= 2:
             # action = torch.unsqueeze(action, 1)
-            action = action.reshape(batch_size, batch_length, -1)
+            # action = action.reshape(batch_size, batch_length, -1)
+            print("Warning! Action dim too low!")
 
-        # embed = embed.permute(1, 0, 2)
-        # action = action.permute(1, 0, 2)
+        # Reshape to (batch_length, batch_size, -1), as we want to iterate over first dimension (batch_length)
+        embed = embed.permute(1, 0, 2)
+        action = action.permute(1, 0, 2)
 
         priors = [[] for i in range(len(state))]
         posts = [[] for i in range(len(state))]
         last = (state, state)
         # for index in range(len(action)):
-        for index in range(len(batch_size)):
+        for index in range(batch_length):
             # Tuple of post and prior
-            # if is_firsts is not None:
-            #     if is_firsts[index]:
-            #         breakpoint()
-            #         # Reset the state
-            #         print("Resetting state", index)
-            #         initial_state = self.get_initial_state()
-            #         last = (initial_state, initial_state)
+            if is_firsts is not None:
+                if is_firsts[index]:
+                    # breakpoint()
+                    # Reset the state
+                    print("Resetting state", index)
+                    initial_state = self.get_initial_state(batch_size)
+                    last = (initial_state, initial_state)
 
             last = self.obs_step(last[0], action[index], embed[index])
             [o.append(s) for s, o in zip(last[0], posts)]
@@ -461,7 +464,7 @@ class AuvRSSM(RSSM):
         prior = [e.permute(1, 0, 2) for e in prior]
         post = [e.permute(1, 0, 2) for e in post]
 
-        breakpoint()
+        # breakpoint()
 
         return post, prior
 

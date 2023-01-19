@@ -85,8 +85,24 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
             is_firsts = None
 
         latent = self.model.encoder(obs)
+
+
+        # breakpoint()
         # post, prior = self.model.dynamics.observe(latent, train_batch["actions"])
-        post, prior = self.model.dynamics.observe(latent, train_batch["actions"], is_firsts=is_firsts)
+
+        # Reshape embedding (latent) and actions to be tensors of size (batch_size, batch_length, ...)
+        if train_batch["actions"].shape[0] != self.config["batch_size"] * self.config["batch_length"]:
+            # Warning: VERY hacky. During Algorithm._initialize_loss_from_dummy_batch(), the batch size is 33. 
+            # Then, we may not reshape to batch_size, batch_length, ..., and must instead reshape to (33, 1, ...)
+            latent_reshaped = latent.reshape(train_batch["actions"].shape[0], 1, -1)
+            actions_reshaped = train_batch["actions"].reshape(train_batch["actions"].shape[0], 1, -1)
+            print("Warning! Reshaping latent to (33, 1, ...)! This should only happen during Algorithm._initialize_loss_from_dummy_batch()")
+        else:
+            latent_reshaped = latent.reshape(self.config["batch_size"], self.config["batch_length"], -1)
+            actions_reshaped = train_batch["actions"].reshape(self.config["batch_size"], self.config["batch_length"], -1)
+
+        post, prior = self.model.dynamics.observe(latent_reshaped, actions_reshaped, is_firsts=is_firsts)
+
         features = self.model.dynamics.get_feature(post)
         image_pred = self.model.decoder(features)
         reward_pred = self.model.reward(features)
