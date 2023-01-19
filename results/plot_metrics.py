@@ -15,14 +15,15 @@ metrics = pd.read_json(path, lines=True)
 metrics.head()
 
 x_column = "step"
+# x_column = "total_episodes"
 columns_to_plot = [
     # "step",
     "return",
     "length",
-    "total_steps",
+    # "total_steps",
     "total_episodes",
-    "loaded_steps",
-    "loaded_episodes",
+    # "loaded_steps",
+    # "loaded_episodes",
     "kl_loss",
     "image_loss",
     "dense_loss",
@@ -46,23 +47,46 @@ columns_to_plot = [
     "actor_ent",
     "actor_ent_scale",
     "critic",
-    "fps",
+    # "fps",
 ]
 
+def beautify_column_name(column_name):
+    # Replace underscores with spaces, and make first letter uppercase
+    return column_name.replace("_", " ").capitalize()
 
 # Set matplotlib style to ggplot
 plt.style.use("ggplot")
 
+prefill = 50e3
+metrics = metrics[metrics[x_column] > prefill]
+
 # Plot all columns in columns_to_plot against "step"
+
+# columns_to_plot = columns_to_plot[:1]
+
 for column in columns_to_plot:
     plt.figure()
-    sns.lineplot(x=x_column, y=column, data=metrics)
+    y_label = beautify_column_name(column)
+    x_label = beautify_column_name(x_column)
+
+    smoothed_column = column + "_smoothed"
+    metrics[smoothed_column] = metrics[column].dropna().rolling(10).mean()
+
+    # print(smoothed_column)
+    # print(metrics[smoothed_column])
+
+    color = (55/255, 75/255, 105/255)
 
 
-# Plot the "Step" and "Value" columns
-# sns.lineplot(x="Step", y="Value", data=metrics)
+    # sns.lineplot(x=x_column, y=column, data=metrics, alpha=0.5, color="b")
+    sns.lineplot(x=x_column, y=column, data=metrics, alpha=0.5, color=color)
 
-# Set the y label to be "Reward"
-# plt.ylabel("Reward")
+    if not metrics[smoothed_column].isnull().all():
+        sns.lineplot(x=x_column, y=smoothed_column, data=metrics, color=color)
 
-# %%
+    legends = ["Raw", "Moving average"]
+
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
+
+# Make pages of subplots with 2 columns and 4 rows each
