@@ -89,7 +89,7 @@ def get_ray_tune_auv_dreamer_config(
         "use_occupancy": gym_auv_config.sensor.use_occupancy_grid,
         "occupancy_grid_shape": (2, 64, 64),
         "use_continuation_prediction": True,
-        "use_kl_balancing": False,  # True, # tune.choice([False, True]),  # True,
+        "use_kl_balancing": True, # False,  # True, # tune.choice([False, True]),  # True,
         "kl_balancing_alpha": 0.8,  # Only used if use_kl_balancing is True
     }
 
@@ -126,8 +126,8 @@ def get_ray_tune_auv_dreamer_config(
         # "evaluation_config": {
         #     "render_env": True,
         # },
-        "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
-        "explore_noise": 0.1, #  tune.choice([0.1]), #  0.3, # 3, # tune.loguniform(1e-3, 5e-2),
+        "gamma": 0.995,  # tune.loguniform(0.9, 0.999),
+        "explore_noise": 0.05, #  tune.choice([0.1]), #  0.3, # 3, # tune.loguniform(1e-3, 5e-2),
         "free_nats": 1,  # tune.choice([1, 3]), # 1,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
