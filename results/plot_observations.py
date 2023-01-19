@@ -47,10 +47,7 @@ with Image.open(filename) as im:
     # Flatten the axes array to make it 1-dimensional
     # axes = axes.ravel()
     # Iterate over all frames
-    frames = []
-    for i, frame in enumerate(list(ImageSequence.Iterator(im))):
-        frames.append(frame.copy())
-   
+    frames = ImageSequence.all_frames(im)  
 
 
     for i in range(nframes):
