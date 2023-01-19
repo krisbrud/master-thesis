@@ -396,6 +396,9 @@ class MLP(nn.Module):
 
 class AuvRSSM(RSSM):
     """Override the RSSM class to be able to reset the state if the state is the first one"""
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+
     def observe(
             self, embed: TensorType, action: TensorType, state: List[TensorType] = None, is_firsts: TensorType = None
         ) -> Tuple[List[TensorType], List[TensorType]]:
@@ -412,6 +415,19 @@ class AuvRSSM(RSSM):
         Returns:
             Posterior states and prior states (both List[TensorType])
         """
+        batch_size = action.size()[0]
+        if state is None:
+            # state = self.get_initial_state(batch_size)
+            state = self.get_initial_state(batch_size)
+            print("Reset state at start of observe! Batch size: ", batch_size)
+            breakpoint()
+
+        if embed.dim() <= 2:
+            embed = torch.unsqueeze(embed, 1)
+
+        if action.dim() <= 2:
+            action = torch.unsqueeze(action, 1)
+
         embed = embed.permute(1, 0, 2)
         action = action.permute(1, 0, 2)
 
@@ -420,11 +436,13 @@ class AuvRSSM(RSSM):
         last = (state, state)
         for index in range(len(action)):
             # Tuple of post and prior
-            if is_firsts is not None:
-                if is_firsts[index]:
-                    # Reset the state
-                    initial_state = self.get_initial_state()
-                    last = (initial_state, initial_state)
+            # if is_firsts is not None:
+            #     if is_firsts[index]:
+            #         breakpoint()
+            #         # Reset the state
+            #         print("Resetting state", index)
+            #         initial_state = self.get_initial_state()
+            #         last = (initial_state, initial_state)
 
             last = self.obs_step(last[0], action[index], embed[index])
             [o.append(s) for s, o in zip(last[0], posts)]
@@ -435,6 +453,8 @@ class AuvRSSM(RSSM):
 
         prior = [e.permute(1, 0, 2) for e in prior]
         post = [e.permute(1, 0, 2) for e in post]
+
+        breakpoint()
 
         return post, prior
 
@@ -497,7 +517,15 @@ class AuvDreamerModel(TorchModelV2, nn.Module):
         )
 
         embed_size = self.encoder.output_size
-        self.dynamics = RSSM(
+        # self.dynamics = RSSM(
+        #     self.action_size,
+        #     embed_size,
+        #     # 32 * self.depth,
+        #     # 1024 + 32,
+        #     stoch=self.stoch_size,
+        #     deter=self.deter_size,
+        # )
+        self.dynamics = AuvRSSM(
             self.action_size,
             embed_size,
             # 32 * self.depth,

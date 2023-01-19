@@ -74,8 +74,19 @@ class AuvDreamerTorchPolicy(TorchPolicyV2):
         )
         # obs = train_batch["obs"]
         # PlaNET Model Loss
+
+        try:
+            train_batch["is_firsts"]
+            is_firsts = train_batch["is_firsts"]
+            # print("Found is_firsts!")
+            # breakpoint()
+        except KeyError:
+            print("is firsts not found!")  # Expected during mock batch
+            is_firsts = None
+
         latent = self.model.encoder(obs)
-        post, prior = self.model.dynamics.observe(latent, train_batch["actions"])
+        # post, prior = self.model.dynamics.observe(latent, train_batch["actions"])
+        post, prior = self.model.dynamics.observe(latent, train_batch["actions"], is_firsts=is_firsts)
         features = self.model.dynamics.get_feature(post)
         image_pred = self.model.decoder(features)
         reward_pred = self.model.reward(features)

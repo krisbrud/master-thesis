@@ -14,11 +14,8 @@ is_not_first = 1 - is_first
 
 is_not_first
 
-for state in states:
-    state_out = is_not_first.reshape(1, -1)
-    print(state_out)
-
-
-states
+state_out = [state * is_not_first.reshape(-1, 1) for state in states]
+    
+state_out
 
 # %%

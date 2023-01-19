@@ -6,7 +6,7 @@ import dreamerv2.api as dv2
 
 import copy
 
-log_suffix = "-jan-16-4"
+log_suffix = "-jan-16-5"
 # Override some of the default config options located in dreamerv2/configs.yaml
 config = dv2.defaults.update({
     ## Training options
@@ -14,7 +14,7 @@ config = dv2.defaults.update({
     "log_every": 1e3,
     "train_every": 10,
     "eval_every": 1e4,
-    "prefill": 5e4,
+    "prefill": 1e3, #5e4,
     # "envs": 4, 
 
     ## Agent options
@@ -43,6 +43,8 @@ env = gym.make(env_name, env_config=gym_auv_config)
 # env = gym_minigrid.wrappers.RGBImgPartialObsWrapper(env)
 
 # env = CustomRGBImgPartialObsWrapper(env)
+import tensorflow as tf
+tf.config.run_functions_eagerly(True)
 
 # print(env)
 dv2.train(env, config)
