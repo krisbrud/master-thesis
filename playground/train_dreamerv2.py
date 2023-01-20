@@ -7,7 +7,7 @@ import dreamerv2.api as dv2
 
 import copy
 
-log_suffix = "-jan-20-9"
+log_suffix = "-jan-20-10"
 # Override some of the default config options located in dreamerv2/configs.yaml
 config = dv2.defaults.update({
     ## Training options
