@@ -6,7 +6,7 @@ TODO.md
 
 # Ignore video files from recorder
 **/*.mp4
-results/*
+results/checkpoints/*
 playground/videos/*
 
 # Ignore checkpoints in playground

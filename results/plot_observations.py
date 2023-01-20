@@ -32,6 +32,10 @@ import math
 from PIL import Image
 import copy
 
+# Activate latex in matplotlib
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
 ncols = 5
 n_every = 50
 
@@ -64,6 +68,8 @@ with Image.open(filename) as im:
             ax.imshow(frame)
             ax.set_adjustable("box")
             ax.axis('off')
+            title_offset = -0.1 
+            ax.set_title(r"$t = $", y=title_offset)
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
 # %%

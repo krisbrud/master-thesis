@@ -107,10 +107,11 @@ def get_ray_tune_auv_dreamer_config(
         "horizon": 2500,  # After horizon time steps, the environment is reset
         # "no_done_at_end": True,
         "imagine_horizon": 15,
-        "td_model_lr": 1e-5,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  #  tune.loguniform(1e-4, 5e-3),
-        "actor_lr": 4e-5,  # tune.choice([1e-4, 3e-5, 8e-6]),  # tune.loguniform(1e-5, 5e-4),
-        "critic_lr": 4e-5,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  # tune.loguniform(1e-5, 5e-4),
+        "td_model_lr": 8e-6,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  #  tune.loguniform(1e-4, 5e-3),
+        "actor_lr": 1e-5,  # tune.choice([1e-4, 3e-5, 8e-6]),  # tune.loguniform(1e-5, 5e-4),
+        "critic_lr": 1e-5,  # tune.choice([1e-4, 3e-5, 8e-6]), # 1e-5,  # tune.loguniform(1e-5, 5e-4),
         "grad_clip": 100,  # tune.randint(50, 200),
+        "kl_coeff": 0.1,  # 
         # "rollout_fragment_length": 16e3,
         "normalize_actions":  True, # tune.choice([True, False]),
         "callbacks": GymAuvCallbacks,
@@ -126,8 +127,8 @@ def get_ray_tune_auv_dreamer_config(
         # "evaluation_config": {
         #     "render_env": True,
         # },
-        "gamma": 0.995,  # tune.loguniform(0.9, 0.999),
-        "explore_noise": 0.05, #  tune.choice([0.1]), #  0.3, # 3, # tune.loguniform(1e-3, 5e-2),
+        "gamma": 0.99,  # tune.loguniform(0.9, 0.999),
+        "explore_noise": 0.1, #  tune.choice([0.1]), #  0.3, # 3, # tune.loguniform(1e-3, 5e-2),
         "free_nats": 1,  # tune.choice([1, 3]), # 1,  # tune.loguniform(1e-4, 5),
         "keep_per_episode_custom_metrics": False,
         # "wandb": {
